@@ -7,6 +7,7 @@ const publicPaths = [
   "/",
   "/login",
   "/signup",
+  "/auth/callback",
   "/hsrm-login",
   "/hsrm-register",
   "/about",

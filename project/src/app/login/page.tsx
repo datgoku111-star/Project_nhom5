@@ -38,6 +38,7 @@ const LoginPageContent = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
 
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -57,6 +58,33 @@ const LoginPageContent = () => {
       router.push(targetUrl as Route);
     }
   }, [user, router, callbackUrl]);
+
+  const handleGoogleLogin = async () => {
+    setError("");
+    setGoogleLoading(true);
+    try {
+      const redirectUrl = `${window.location.origin}/auth/callback${
+        callbackUrl && callbackUrl !== "/" ? `?next=${encodeURIComponent(callbackUrl)}` : ""
+      }`;
+      const { error: signInError } = await supabaseBrowser.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: redirectUrl,
+        },
+      });
+      if (signInError) {
+        throw signInError;
+      }
+    } catch (err: any) {
+      console.error("Google sign in error:", err);
+      let errMsg = err.message || "Đăng nhập bằng Google thất bại";
+      if (errMsg.includes("Failed to fetch") || errMsg.includes("fetch failed")) {
+        errMsg = "Không thể kết nối đến Supabase. Vui lòng kiểm tra lại cấu hình Supabase.";
+      }
+      setError(errMsg);
+      setGoogleLoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -146,22 +174,45 @@ const LoginPageContent = () => {
         </h2>
         <div className="max-w-md mx-auto space-y-6">
           <div className="grid gap-3">
-            {loginSocials.map((item, index) => (
-              <a
-                key={index}
-                href={item.href}
-                className="flex w-full rounded-lg bg-primary-50 dark:bg-neutral-800 px-4 py-3 transform transition-transform sm:px-6 hover:translate-y-[-2px]"
-              >
-                <Image
-                  className="flex-shrink-0"
-                  src={item.icon}
-                  alt={t(item.nameKey)}
-                />
-                <h3 suppressHydrationWarning className="flex-grow text-center text-sm font-medium text-neutral-700 dark:text-neutral-300 sm:text-sm">
-                  {t(item.nameKey)}
-                </h3>
-              </a>
-            ))}
+            {loginSocials.map((item, index) => {
+              const isGoogle = item.nameKey === "loginSocialGoogle";
+              if (isGoogle) {
+                return (
+                  <button
+                    key={index}
+                    type="button"
+                    onClick={handleGoogleLogin}
+                    disabled={loading || googleLoading}
+                    className="flex w-full items-center rounded-lg bg-primary-50 dark:bg-neutral-800 px-4 py-3 transform transition-transform sm:px-6 hover:translate-y-[-2px] disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                  >
+                    <Image
+                      className="flex-shrink-0"
+                      src={item.icon}
+                      alt={t(item.nameKey)}
+                    />
+                    <h3 suppressHydrationWarning className="flex-grow text-center text-sm font-medium text-neutral-700 dark:text-neutral-300 sm:text-sm">
+                      {googleLoading ? "Đang chuyển hướng đến Google..." : t(item.nameKey)}
+                    </h3>
+                  </button>
+                );
+              }
+              return (
+                <a
+                  key={index}
+                  href={item.href}
+                  className="flex w-full items-center rounded-lg bg-primary-50 dark:bg-neutral-800 px-4 py-3 transform transition-transform sm:px-6 hover:translate-y-[-2px]"
+                >
+                  <Image
+                    className="flex-shrink-0"
+                    src={item.icon}
+                    alt={t(item.nameKey)}
+                  />
+                  <h3 suppressHydrationWarning className="flex-grow text-center text-sm font-medium text-neutral-700 dark:text-neutral-300 sm:text-sm">
+                    {t(item.nameKey)}
+                  </h3>
+                </a>
+              );
+            })}
           </div>
           {/* OR */}
           <div className="relative text-center">
