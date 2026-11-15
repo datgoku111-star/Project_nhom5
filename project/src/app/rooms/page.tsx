@@ -6,6 +6,11 @@ import Link from "next/link";
 import { Route } from "@/routers/types";
 import { Room } from "@/types/hotel";
 import { cookies } from "next/headers";
+import {
+  DEFAULT_LANGUAGE,
+  isAppLanguage,
+  toFormattingLocale,
+} from "@/lib/locale";
 
 export const revalidate = 0; // Disable static rendering
 
@@ -14,8 +19,10 @@ export default async function RoomsPage({
 }: {
   searchParams: { checkIn?: string; checkOut?: string; type?: string };
 }) {
-  const language = cookies().get("site-language")?.value === "vn" ? "vn" : "en";
-
+  const languageCookie = cookies().get("site-language")?.value;
+  const language = isAppLanguage(languageCookie)
+    ? languageCookie
+    : DEFAULT_LANGUAGE;
   const [rooms, roomTypes] = await Promise.all([
     getRoomsWithDeadlines(
       searchParams.checkIn,
@@ -114,6 +121,7 @@ export default async function RoomsPage({
 function RoomCard({ room, language }: { room: Room; language: "en" | "vn" }) {
   const rt = room.room_type;
   if (!rt) return null;
+  const formattingLocale = toFormattingLocale(language);
 
   return (
     <div className="nc-StayCard group relative bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 rounded-2xl overflow-hidden hover:shadow-xl transition-shadow will-change-transform">
@@ -165,7 +173,7 @@ function RoomCard({ room, language }: { room: Room; language: "en" | "vn" }) {
 
         <div className="flex justify-between items-center">
           <span className="text-base font-semibold text-primary-6000">
-            {new Intl.NumberFormat("vi-VN", {
+            {new Intl.NumberFormat(formattingLocale, {
               style: "currency",
               currency: "VND",
             }).format(rt.base_price)}

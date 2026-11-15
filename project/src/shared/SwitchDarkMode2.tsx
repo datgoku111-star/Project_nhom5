@@ -3,6 +3,7 @@
 import { useThemeMode } from "@/utils/useThemeMode";
 import { Switch } from "@headlessui/react";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export interface SwitchDarkMode2Props {
   className?: string;
@@ -11,17 +12,18 @@ const SwitchDarkMode2: React.FC<SwitchDarkMode2Props> = ({
   className = "",
 }) => {
   const { _toogleDarkMode, isDarkMode, toDark, toLight } = useThemeMode();
+  const { t } = useTranslation();
 
   return (
     <div className="inline-flex">
-      <span className="sr-only">Enable dark mode</span>
+      <span className="sr-only">{t("accountMenuToggleDarkMode")}</span>
       <Switch
         checked={isDarkMode}
         onChange={_toogleDarkMode}
         className={`${isDarkMode ? "bg-teal-900" : "bg-teal-600"}
           relative inline-flex h-[22px] w-[42px] shrink-0 cursor-pointer rounded-full border-4 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus-visible:ring-2  focus-visible:ring-white focus-visible:ring-opacity-75`}
       >
-        <span className="sr-only">Enable dark mode</span>
+        <span className="sr-only">{t("accountMenuToggleDarkMode")}</span>
         <span
           aria-hidden="true"
           className={`${isDarkMode ? "translate-x-5" : "translate-x-0"}

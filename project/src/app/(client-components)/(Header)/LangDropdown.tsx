@@ -4,7 +4,6 @@ import { Popover, Transition } from "@headlessui/react";
 import { GlobeAltIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
 import { FC, Fragment } from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "@/lib/i18n";
 
 export const headerLanguage = [
   {
@@ -29,7 +28,7 @@ const LangDropdown: FC<LangDropdownProps> = ({
   panelClassName = "top-full right-0 max-w-xs w-72",
   className = "hidden md:flex",
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   const renderLang = (close: () => void) => {
     return (

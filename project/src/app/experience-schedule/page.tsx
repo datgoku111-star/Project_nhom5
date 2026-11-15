@@ -5,10 +5,17 @@ import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
 import DashboardLayout from "../dashboard/layout";
 import { Route } from "@/routers/types";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export default function ExperienceSchedulePage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
+  const activeLanguage = isAppLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(activeLanguage);
   const [experiences, setExperiences] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,24 +53,39 @@ export default function ExperienceSchedulePage() {
     }
   };
 
-  if (isLoading || loading) return <DashboardLayout><div className="p-8">Đang tải lịch trình...</div></DashboardLayout>;
+  const formatDate = (value: string) =>
+    new Intl.DateTimeFormat(formattingLocale, { dateStyle: "medium" }).format(new Date(value));
+  const formatMoney = (value: number) =>
+    new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND" }).format(value || 0);
+
+  if (isLoading || loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-6 md:p-8 lg:p-10 text-neutral-500">
+          {t("experienceScheduleLoading")}
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <h2 className="text-2xl font-semibold">Lịch trình trải nghiệm</h2>
+      <div className="p-6 md:p-8 lg:p-10 space-y-6">
+        <h2 className="text-2xl font-semibold text-neutral-900 dark:text-white">
+          {t("experienceScheduleTitle")}
+        </h2>
         <p className="text-neutral-500">
-          Danh sách các trải nghiệm du lịch của bạn đã được Lễ Tân xác nhận.
+          {t("experienceScheduleSubtitle")}
         </p>
         
         {experiences.length === 0 ? (
           <div className="p-8 text-center bg-neutral-50 dark:bg-neutral-800 rounded-xl">
-            <p className="text-neutral-500">Bạn chưa có lịch trình trải nghiệm nào được xác nhận.</p>
+            <p className="text-neutral-500">{t("experienceScheduleEmpty")}</p>
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {experiences.map((exp) => {
-              let title = "Trải nghiệm";
+              let title = t("experienceScheduleFallbackTitle");
               let roomNumber = exp.room?.room_number || exp.room_id;
               try {
                 const parsed = JSON.parse(exp.special_requests);
@@ -76,14 +98,17 @@ export default function ExperienceSchedulePage() {
                   <div className="flex justify-between items-start mb-4">
                     <h3 className="text-xl font-bold text-emerald-600">{title}</h3>
                     <span className="px-3 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded-full">
-                      Đã xác nhận
+                      {t("experienceScheduleConfirmed")}
                     </span>
                   </div>
                   <div className="space-y-2 text-sm text-neutral-600 dark:text-neutral-400">
-                    <p><strong>Ngày bắt đầu:</strong> {new Date(exp.check_in_date).toLocaleDateString()}</p>
-                    <p><strong>Ngày kết thúc:</strong> {new Date(exp.check_out_date).toLocaleDateString()}</p>
-                    <p><strong>Liên kết với phòng:</strong> {roomNumber}</p>
-                    <p><strong>Trạng thái thanh toán:</strong> Đã thanh toán toàn bộ ({(exp.total_amount || 0).toLocaleString()} VND)</p>
+                    <p><strong>{t("experienceScheduleStartDate")}:</strong> {formatDate(exp.check_in_date)}</p>
+                    <p><strong>{t("experienceScheduleEndDate")}:</strong> {formatDate(exp.check_out_date)}</p>
+                    <p><strong>{t("experienceScheduleLinkedRoom")}:</strong> {roomNumber || "—"}</p>
+                    <p>
+                      <strong>{t("experienceSchedulePaymentStatus")}:</strong>{" "}
+                      {t("experienceSchedulePaidInFull", { amount: formatMoney(exp.total_amount) })}
+                    </p>
                   </div>
                 </div>
               );

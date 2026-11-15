@@ -16,7 +16,7 @@ Nhiệm vụ của bạn là hỗ trợ khách hàng giải đáp thắc mắc d
 
 --- NGUYÊN TẮC HOẠT ĐỘNG ---
 - Chỉ trả lời các thông tin dựa trên dữ liệu trên. Nếu khách hỏi thông tin không có sẵn (ví dụ: "khách sạn còn phòng trống tối nay không?"), hãy trả lời rằng bạn không thể kiểm tra trực tiếp trạng thái phòng theo thời gian thực và gợi ý họ kết nối với CSKH.
-- NGÔN NGỮ: Sử dụng tiếng Việt lịch sự, xưng hô "Dạ, em chào anh/chị" và kết thúc bằng "ạ".
+- NGÔN NGỮ: {{LANGUAGE_INSTRUCTION}}
 
 --- ĐIỀU KIỆN KÍCH HOẠT CSKH (QUAN TRỌNG) ---
 Bạn phải đặt giá trị triggerForm: true khi và chỉ khi xảy ra một trong các trường hợp sau:
@@ -31,9 +31,20 @@ Luôn trả về kết quả dưới định dạng JSON nguyên bản, không n
 }
 `;
 
+type ChatLanguage = "en" | "vn";
+
+const getSystemPrompt = (language: ChatLanguage) =>
+  SYSTEM_PROMPT.replace(
+    "{{LANGUAGE_INSTRUCTION}}",
+    language === "en"
+      ? "Reply in polite, natural English."
+      : 'Sử dụng tiếng Việt lịch sự, xưng hô "Dạ, em chào anh/chị" và kết thúc bằng "ạ".',
+  );
+
 // Local rule-based fallback if GEMINI_API_KEY is not configured
-function ruleBasedReply(message: string): { reply: string; triggerForm: boolean } {
+function ruleBasedReply(message: string, language: ChatLanguage): { reply: string; triggerForm: boolean } {
   const lowercaseMsg = message.toLowerCase();
+  const isEnglish = language === "en";
 
   // Check triggerForm conditions
   if (
@@ -48,59 +59,81 @@ function ruleBasedReply(message: string): { reply: string; triggerForm: boolean 
     lowercaseMsg.includes("giảm giá") ||
     lowercaseMsg.includes("khuyến mãi") ||
     lowercaseMsg.includes("còn phòng")
+    || lowercaseMsg.includes("staff")
+    || lowercaseMsg.includes("manager")
+    || lowercaseMsg.includes("hotline")
+    || lowercaseMsg.includes("book a room")
+    || lowercaseMsg.includes("cancel booking")
+    || lowercaseMsg.includes("discount")
+    || lowercaseMsg.includes("availability")
   ) {
     return {
-      reply: "Dạ, em chào anh/chị. Yêu cầu này nằm ngoài phạm vi hỗ trợ tự động của em. Em xin phép chuyển thông tin này tới bộ phận Chăm sóc khách hàng (CSKH) để hỗ trợ anh/chị trực tiếp ngay lập tức ạ.",
+      reply: isEnglish
+        ? "This request is outside my automated support scope. I can forward your details to Customer Service so a staff member can assist you directly."
+        : "Dạ, em chào anh/chị. Yêu cầu này nằm ngoài phạm vi hỗ trợ tự động của em. Em xin phép chuyển thông tin này tới bộ phận Chăm sóc khách hàng (CSKH) để hỗ trợ anh/chị trực tiếp ngay lập tức ạ.",
       triggerForm: true,
     };
   }
 
   // Check standard Q&A
-  if (lowercaseMsg.includes("wifi") || lowercaseMsg.includes("mạng")) {
+  if (lowercaseMsg.includes("wifi") || lowercaseMsg.includes("mạng") || lowercaseMsg.includes("network")) {
     return {
-      reply: "Dạ, em chào anh/chị. Mạng Wifi của khách sạn là \"Grand_Ocean_Guest\" với mật khẩu đăng nhập là \"welcome2026\" ạ.",
+      reply: isEnglish
+        ? 'The hotel Wi-Fi network is "Grand_Ocean_Guest" and the password is "welcome2026".'
+        : "Dạ, em chào anh/chị. Mạng Wifi của khách sạn là \"Grand_Ocean_Guest\" với mật khẩu đăng nhập là \"welcome2026\" ạ.",
       triggerForm: false,
     };
   }
 
-  if (lowercaseMsg.includes("giờ") || lowercaseMsg.includes("nhận phòng") || lowercaseMsg.includes("trả phòng") || lowercaseMsg.includes("checkin") || lowercaseMsg.includes("checkout")) {
+  if (lowercaseMsg.includes("giờ") || lowercaseMsg.includes("nhận phòng") || lowercaseMsg.includes("trả phòng") || lowercaseMsg.includes("checkin") || lowercaseMsg.includes("checkout") || lowercaseMsg.includes("check-in") || lowercaseMsg.includes("check-out")) {
     return {
-      reply: "Dạ, em chào anh/chị. Thời gian nhận phòng (Check-in) của khách sạn là sau 14:00 và thời gian trả phòng (Check-out) là trước 12:00 trưa ạ.",
+      reply: isEnglish
+        ? "Hotel check-in is after 2:00 PM and check-out is before 12:00 PM."
+        : "Dạ, em chào anh/chị. Thời gian nhận phòng (Check-in) của khách sạn là sau 14:00 và thời gian trả phòng (Check-out) là trước 12:00 trưa ạ.",
       triggerForm: false,
     };
   }
 
-  if (lowercaseMsg.includes("giá phòng") || lowercaseMsg.includes("phòng") || lowercaseMsg.includes("bao nhiêu")) {
+  if (lowercaseMsg.includes("giá phòng") || lowercaseMsg.includes("phòng") || lowercaseMsg.includes("bao nhiêu") || lowercaseMsg.includes("room rate") || lowercaseMsg.includes("room price") || lowercaseMsg.includes("how much")) {
     return {
-      reply: "Dạ, em chào anh/chị. Hiện khách sạn đang có 3 hạng phòng chính là:\n1. Phòng Standard (1 giường đôi): 600.000đ/đêm.\n2. Phòng Deluxe (Hướng biển, 1 giường lớn): 1.200.000đ/đêm.\n3. Phòng Suite (Cao cấp, phòng khách riêng): 2.500.000đ/đêm ạ.",
+      reply: isEnglish
+        ? "The hotel has three main room categories:\n1. Standard Room (1 double bed): VND 600,000 per night.\n2. Deluxe Room (sea view, 1 large bed): VND 1,200,000 per night.\n3. Suite (premium room with a separate living area): VND 2,500,000 per night."
+        : "Dạ, em chào anh/chị. Hiện khách sạn đang có 3 hạng phòng chính là:\n1. Phòng Standard (1 giường đôi): 600.000đ/đêm.\n2. Phòng Deluxe (Hướng biển, 1 giường lớn): 1.200.000đ/đêm.\n3. Phòng Suite (Cao cấp, phòng khách riêng): 2.500.000đ/đêm ạ.",
       triggerForm: false,
     };
   }
 
-  if (lowercaseMsg.includes("bữa sáng") || lowercaseMsg.includes("buffet") || lowercaseMsg.includes("ăn sáng") || lowercaseMsg.includes("bể bơi") || lowercaseMsg.includes("đỗ xe")) {
+  if (lowercaseMsg.includes("bữa sáng") || lowercaseMsg.includes("buffet") || lowercaseMsg.includes("ăn sáng") || lowercaseMsg.includes("bể bơi") || lowercaseMsg.includes("đỗ xe") || lowercaseMsg.includes("breakfast") || lowercaseMsg.includes("pool") || lowercaseMsg.includes("parking")) {
     return {
-      reply: "Dạ, em chào anh/chị. Khách sạn có miễn phí buffet bữa sáng phục vụ từ 6:30 - 9:30. Bể bơi vô cực trên tầng thượng mở cửa đón khách đến 22:00 hàng ngày. Ngoài ra, khách sạn cũng cung cấp chỗ đỗ xe ô tô hoàn toàn miễn phí ạ.",
+      reply: isEnglish
+        ? "The hotel offers a complimentary breakfast buffet from 6:30 AM to 9:30 AM. The rooftop infinity pool is open until 10:00 PM daily, and free car parking is available."
+        : "Dạ, em chào anh/chị. Khách sạn có miễn phí buffet bữa sáng phục vụ từ 6:30 - 9:30. Bể bơi vô cực trên tầng thượng mở cửa đón khách đến 22:00 hàng ngày. Ngoài ra, khách sạn cũng cung cấp chỗ đỗ xe ô tô hoàn toàn miễn phí ạ.",
       triggerForm: false,
     };
   }
 
-  if (lowercaseMsg.includes("hủy") || lowercaseMsg.includes("trả lại tiền")) {
+  if (lowercaseMsg.includes("hủy") || lowercaseMsg.includes("trả lại tiền") || lowercaseMsg.includes("cancel") || lowercaseMsg.includes("refund")) {
     return {
-      reply: "Dạ, em chào anh/chị. Theo chính sách của khách sạn, anh/chị sẽ được hoàn tiền 100% nếu thực hiện hủy phòng trước 48 giờ so với thời điểm nhận phòng (check-in) ạ.",
+      reply: isEnglish
+        ? "The hotel provides a 100% refund when a booking is cancelled at least 48 hours before check-in."
+        : "Dạ, em chào anh/chị. Theo chính sách của khách sạn, anh/chị sẽ được hoàn tiền 100% nếu thực hiện hủy phòng trước 48 giờ so với thời điểm nhận phòng (check-in) ạ.",
       triggerForm: false,
     };
   }
 
   // Default response
   return {
-    reply: "Dạ, em chào anh/chị. Em là trợ lý ảo của Fis. Em có thể hỗ trợ giải đáp các thông tin về giá phòng, giờ check-in/out, tiện ích ăn sáng/bể bơi, thông tin wifi hoặc chính sách hủy phòng của khách sạn ạ. Anh/chị cần em hỗ trợ gì ạ?",
+    reply: isEnglish
+      ? "Hello! I am the Fis virtual assistant. I can help with room rates, check-in and check-out times, breakfast and pool amenities, Wi-Fi information, and the hotel cancellation policy. How can I help?"
+      : "Dạ, em chào anh/chị. Em là trợ lý ảo của Fis. Em có thể hỗ trợ giải đáp các thông tin về giá phòng, giờ check-in/out, tiện ích ăn sáng/bể bơi, thông tin wifi hoặc chính sách hủy phòng của khách sạn ạ. Anh/chị cần em hỗ trợ gì ạ?",
     triggerForm: false,
   };
 }
 
 export async function POST(request: Request) {
   try {
-    const { message, history = [] } = await request.json();
+    const { message, history = [], language } = await request.json();
+    const chatLanguage: ChatLanguage = language === "en" ? "en" : "vn";
 
     if (!message) {
       return NextResponse.json({ error: "Message is required" }, { status: 400 });
@@ -111,7 +144,7 @@ export async function POST(request: Request) {
     if (!apiKey) {
       // Fallback to rule-based logic if no API key is provided
       console.warn("GEMINI_API_KEY is not set. Falling back to local rule-based chatbot.");
-      const response = ruleBasedReply(message);
+      const response = ruleBasedReply(message, chatLanguage);
       return NextResponse.json(response);
     }
 
@@ -136,7 +169,7 @@ export async function POST(request: Request) {
       body: JSON.stringify({
         contents: formattedContents,
         systemInstruction: {
-          parts: [{ text: SYSTEM_PROMPT }]
+          parts: [{ text: getSystemPrompt(chatLanguage) }]
         },
         generationConfig: {
           responseMimeType: "application/json"

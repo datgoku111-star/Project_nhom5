@@ -4,6 +4,8 @@ import React, { useState, useEffect } from "react";
 import { Calendar, CheckCircle2, XCircle, Clock, Search, Filter, RefreshCw, Eye, ArrowRight, Check, X, Compass } from "lucide-react";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export interface BookingRecord {
   id: string;
@@ -37,6 +39,19 @@ export interface BookingRecord {
 }
 
 export default function AdminBookingsPage() {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+  const getStatusLabel = (status: BookingRecord["status"] | "ALL") => {
+    switch (status) {
+      case "ALL": return t("adminBookingsStatusAll");
+      case "PENDING": return t("adminBookingsStatusPending");
+      case "CONFIRMED": return t("adminBookingsStatusConfirmed");
+      case "CHECKED_IN": return t("adminBookingsStatusCheckedIn");
+      case "CHECKED_OUT": return t("adminBookingsStatusCheckedOut");
+      case "CANCELLED": return t("adminBookingsStatusCancelled");
+    }
+  };
   const [bookings, setBookings] = useState<BookingRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -48,7 +63,7 @@ export default function AdminBookingsPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/bookings");
-      if (!res.ok) throw new Error("Lỗi tải danh sách đặt phòng");
+      if (!res.ok) throw new Error(t("adminBookingsLoadError"));
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         setBookings(data);
@@ -157,17 +172,17 @@ export default function AdminBookingsPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-3">
             <Calendar className="w-8 h-8 text-primary-6000" />
-            Quản Lý Toàn Bộ Đơn Đặt Phòng (`Bookings Directory`)
+            {t("adminBookingsTitle")}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-            Tra cứu, kiểm duyệt và thay đổi trạng thái đơn đặt phòng trực tuyến & vãng lai của khách sạn.
+            {t("adminBookingsSubtitle")}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <ButtonThird onClick={fetchBookings} sizeClass="px-4 py-2.5">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Làm mới
+            {t("adminBookingsRefresh")}
           </ButtonThird>
         </div>
       </div>
@@ -178,7 +193,7 @@ export default function AdminBookingsPage() {
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
           <input
             type="text"
-            placeholder="Tìm theo Mã Booking, Tên Khách Hàng hoặc Số Phòng..."
+            placeholder={t("adminBookingsSearchPlaceholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-sm outline-none focus:ring-2 focus:ring-primary-6000"
@@ -196,12 +211,7 @@ export default function AdminBookingsPage() {
                   : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-200"
               }`}
             >
-              {st === "ALL" && "🌟 Tất cả"}
-              {st === "PENDING" && "⏳ Chờ duyệt (Pending)"}
-              {st === "CONFIRMED" && "📅 Đã xác nhận (Confirmed)"}
-              {st === "CHECKED_IN" && "🛏️ Đang lưu trú (Checked In)"}
-              {st === "CHECKED_OUT" && "🚪 Đã trả phòng (Checked Out)"}
-              {st === "CANCELLED" && "❌ Đã hủy"}
+              {getStatusLabel(st as BookingRecord["status"] | "ALL")}
             </button>
           ))}
         </div>
@@ -210,20 +220,20 @@ export default function AdminBookingsPage() {
       {/* Table */}
       <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-700 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-neutral-500">Đang tải danh sách đặt phòng...</div>
+          <div className="p-12 text-center text-neutral-500">{t("adminBookingsLoading")}</div>
         ) : filteredBookings.length === 0 ? (
-          <div className="p-12 text-center text-neutral-500">Không tìm thấy đơn đặt phòng nào phù hợp với bộ lọc.</div>
+          <div className="p-12 text-center text-neutral-500">{t("adminBookingsEmpty")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-600 dark:text-neutral-300 font-semibold text-sm">
-                  <th className="py-4 px-6">Mã Booking & Khách Hàng</th>
-                  <th className="py-4 px-6">Phòng & Hạng Phòng</th>
-                  <th className="py-4 px-6">Thời Gian Lưu Trú</th>
-                  <th className="py-4 px-6">Tổng Tiền (`total_amount`)</th>
-                  <th className="py-4 px-6">Trạng Thái Hiện Tại</th>
-                  <th className="py-4 px-6 text-right">Điều Hướng Trạng Thái</th>
+                  <th className="py-4 px-6">{t("adminBookingsColumnBookingCustomer")}</th>
+                  <th className="py-4 px-6">{t("adminBookingsColumnRoomType")}</th>
+                  <th className="py-4 px-6">{t("adminBookingsColumnStay")}</th>
+                  <th className="py-4 px-6">{t("adminBookingsColumnTotal")}</th>
+                  <th className="py-4 px-6">{t("adminBookingsColumnStatus")}</th>
+                  <th className="py-4 px-6 text-right">{t("adminBookingsColumnActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700/60 text-sm">
@@ -235,14 +245,6 @@ export default function AdminBookingsPage() {
                     CHECKED_OUT: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
                     CANCELLED: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
                   };
-                  const statusLabels = {
-                    PENDING: "⏳ Chờ duyệt (PENDING)",
-                    CONFIRMED: "📅 Đã xác nhận (CONFIRMED)",
-                    CHECKED_IN: "🛏️ Đang ở (CHECKED_IN)",
-                    CHECKED_OUT: "🚪 Đã trả (CHECKED_OUT)",
-                    CANCELLED: "❌ Đã hủy",
-                  };
-
                   // Parse booking type
                   let isExp = false;
                   let isCar = false;
@@ -260,21 +262,21 @@ export default function AdminBookingsPage() {
                   const isUSD = isExp || isCar;
                   const displayPrice = isUSD 
                     ? `$${Number(b.total_amount).toFixed(2)}` 
-                    : `${b.total_amount.toLocaleString("vi-VN")} đ`;
+                    : new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(b.total_amount);
 
                   return (
                     <tr key={b.id} className="hover:bg-neutral-50/80 dark:hover:bg-neutral-700/30 transition-colors">
                       <td className="py-4 px-6">
                         <div className="font-extrabold text-neutral-900 dark:text-white text-base flex items-center gap-2">
-                          <span>{b.guest?.full_name || b.user?.full_name || "Khách Hàng HSRM"}</span>
+                          <span>{b.guest?.full_name || b.user?.full_name || t("adminBookingsDefaultCustomer")}</span>
                           {isExp && (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                              Trải nghiệm
+                              {t("adminBookingsExperience")}
                             </span>
                           )}
                           {isCar && (
                             <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
-                              Thuê xe
+                              {t("adminBookingsCarRental")}
                             </span>
                           )}
                         </div>
@@ -285,21 +287,21 @@ export default function AdminBookingsPage() {
                         {isExp ? (
                           <>
                             <span className="bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-300 font-bold px-2.5 py-1 rounded-lg text-sm capitalize">
-                              🧗 {meta?.title || "Tour Trải nghiệm"}
+                              🧗 {meta?.title || t("adminBookingsExperienceTour")}
                             </span>
-                            <div className="text-xs text-neutral-500 mt-1">Dịch vụ hoạt động trải nghiệm</div>
+                            <div className="text-xs text-neutral-500 mt-1">{t("adminBookingsExperienceService")}</div>
                           </>
                         ) : isCar ? (
                           <>
                             <span className="bg-blue-50 dark:bg-blue-900/40 text-blue-600 dark:text-blue-300 font-bold px-2.5 py-1 rounded-lg text-sm">
-                              🚗 {meta?.title || "Thuê xe"}
+                              🚗 {meta?.title || t("adminBookingsCarRental")}
                             </span>
-                            <div className="text-xs text-neutral-500 mt-1">Dịch vụ phương tiện tự lái</div>
+                            <div className="text-xs text-neutral-500 mt-1">{t("adminBookingsCarService")}</div>
                           </>
                         ) : (
                           <>
                             <span className="bg-primary-50 dark:bg-primary-900/40 text-primary-6000 dark:text-primary-300 font-bold px-2.5 py-1 rounded-lg text-sm">
-                              Phòng {b.room?.room_number || "P101"}
+                              {t("adminBookingsRoomValue", { number: b.room?.room_number || "P101" })}
                             </span>
                             <div className="text-xs text-neutral-500 mt-1">{b.room?.room_type?.name || "Deluxe Ocean View"}</div>
                           </>
@@ -307,10 +309,12 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="py-4 px-6">
                         <div className="font-medium text-neutral-800 dark:text-neutral-200">
-                          {new Date(b.check_in_date).toLocaleDateString("vi-VN")} ➔ {new Date(b.check_out_date).toLocaleDateString("vi-VN")}
+                          {new Date(b.check_in_date).toLocaleDateString(formattingLocale)} ➔ {new Date(b.check_out_date).toLocaleDateString(formattingLocale)}
                         </div>
                         <div className="text-xs text-neutral-400 mt-0.5">
-                          {isExp || isCar ? `${b.num_guests} người đăng ký` : `${b.num_guests} khách đi cùng`}
+                          {isExp || isCar
+                            ? t("adminBookingsParticipants", { count: b.num_guests })
+                            : t("adminBookingsGuests", { count: b.num_guests })}
                         </div>
                       </td>
                       <td className="py-4 px-6 font-extrabold text-primary-6000 dark:text-primary-400 text-base">
@@ -318,7 +322,7 @@ export default function AdminBookingsPage() {
                       </td>
                       <td className="py-4 px-6">
                         <span className={`px-3 py-1.5 rounded-xl font-bold text-xs ${statusColors[b.status]}`}>
-                          {statusLabels[b.status]}
+                          {getStatusLabel(b.status)}
                         </span>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2 whitespace-nowrap">
@@ -330,7 +334,7 @@ export default function AdminBookingsPage() {
                           className="bg-neutral-100 hover:bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:hover:bg-neutral-700 dark:text-neutral-200 font-bold px-3 py-1.5 rounded-xl text-xs transition-all inline-flex items-center gap-1"
                         >
                           <Eye className="w-3.5 h-3.5" />
-                          Chi tiết
+                          {t("adminBookingsDetails")}
                         </button>
 
                         {/* Room Specific Actions */}
@@ -342,7 +346,7 @@ export default function AdminBookingsPage() {
                                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow transition-all inline-flex items-center gap-1"
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                Duyệt (Confirm)
+                                {t("adminBookingsConfirm")}
                               </button>
                             )}
                             {b.status === "CONFIRMED" && (
@@ -351,7 +355,7 @@ export default function AdminBookingsPage() {
                                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow transition-all inline-flex items-center gap-1"
                               >
                                 <CheckCircle2 className="w-3.5 h-3.5" />
-                                Check-In Ngay
+                                {t("adminBookingsCheckIn")}
                               </button>
                             )}
                             {b.status === "CHECKED_IN" && (
@@ -360,16 +364,16 @@ export default function AdminBookingsPage() {
                                 className="bg-purple-600 hover:bg-purple-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow transition-all inline-flex items-center gap-1"
                               >
                                 <ArrowRight className="w-3.5 h-3.5" />
-                                Check-Out
+                                {t("adminBookingsCheckOut")}
                               </button>
                             )}
                             {b.status !== "CANCELLED" && b.status !== "CHECKED_OUT" && (
                               <button
                                 onClick={() => {
-                                  const reason = prompt("Please enter the cancellation reason (deposit will be refunded to the customer):");
+                                  const reason = prompt(t("adminBookingsCancellationPrompt"));
                                   if (reason !== null) {
                                     if (!reason.trim()) {
-                                      alert("Cancellation reason cannot be empty!");
+                                      alert(t("adminBookingsCancellationRequired"));
                                     } else {
                                       updateBookingStatus(b.id, "CANCELLED", reason);
                                     }
@@ -377,7 +381,7 @@ export default function AdminBookingsPage() {
                                 }}
                                 className="bg-red-50 dark:bg-red-900/30 hover:bg-red-100 text-red-600 font-bold px-2.5 py-1.5 rounded-xl text-xs transition-all"
                               >
-                                Cancel
+                                {t("adminBookingsCancel")}
                               </button>
                             )}
                           </>
@@ -390,17 +394,17 @@ export default function AdminBookingsPage() {
                                 className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-3 py-1.5 rounded-xl text-xs shadow transition-all inline-flex items-center gap-1"
                               >
                                 <Check className="w-3.5 h-3.5" />
-                                Duyệt thanh toán
+                                {t("adminBookingsApprovePayment")}
                               </button>
                             )}
                             {b.status !== "PENDING" && b.status !== "CANCELLED" && (
                               <span className="inline-block px-2.5 py-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/40 rounded-xl">
-                                ✓ Đã thanh toán
+                                {t("adminBookingsPaid")}
                               </span>
                             )}
                             {b.status === "CANCELLED" && (
                               <span className="inline-block px-2.5 py-1.5 text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/40 rounded-xl">
-                                Đã hủy
+                                {t("adminBookingsStatusCancelled")}
                               </span>
                             )}
                           </>
@@ -432,7 +436,7 @@ export default function AdminBookingsPage() {
         const isUSD = isExp || isCar;
         const displayPrice = isUSD 
           ? `$${Number(selectedBooking.total_amount).toFixed(2)}` 
-          : `${selectedBooking.total_amount.toLocaleString("vi-VN")} đ`;
+          : new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(selectedBooking.total_amount);
 
         return (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
@@ -441,13 +445,13 @@ export default function AdminBookingsPage() {
               <div className="flex justify-between items-center pb-4 border-b border-neutral-100 dark:border-neutral-800">
                 <div>
                   <h3 className="text-xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-2">
-                    <span>Chi Tiết Đơn Đặt Chỗ</span>
+                    <span>{t("adminBookingsDetailTitle")}</span>
                     <span className="text-xs font-mono bg-neutral-100 dark:bg-neutral-800 px-2 py-0.5 rounded text-neutral-500 font-normal">
                       #{selectedBooking.id.split("-")[0].toUpperCase()}
                     </span>
                   </h3>
                   <p className="text-xs text-neutral-500 mt-1">
-                    Đặt lúc: {selectedBooking.created_at ? new Date(selectedBooking.created_at).toLocaleString("vi-VN") : "-"}
+                    {t("adminBookingsBookedAt")}: {selectedBooking.created_at ? new Date(selectedBooking.created_at).toLocaleString(formattingLocale) : "-"}
                   </p>
                 </div>
                 <button
@@ -462,58 +466,60 @@ export default function AdminBookingsPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Left side: Booking metadata */}
                 <div className="space-y-4">
-                  <h4 className="font-extrabold text-sm text-primary-6000 uppercase tracking-wider">Thông tin dịch vụ</h4>
+                  <h4 className="font-extrabold text-sm text-primary-6000 uppercase tracking-wider">{t("adminBookingsServiceInfo")}</h4>
                   
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-neutral-400">Loại đơn hàng:</span>
+                      <span className="text-neutral-400">{t("adminBookingsOrderType")}:</span>
                       <span className="font-bold">
-                        {isExp ? "🧗 Trải nghiệm" : isCar ? "🚗 Thuê xe" : "🏨 Phòng nghỉ Stay"}
+                        {isExp ? `🧗 ${t("adminBookingsExperience")}` : isCar ? `🚗 ${t("adminBookingsCarRental")}` : `🏨 ${t("adminBookingsStay")}`}
                       </span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-neutral-400">Tên dịch vụ:</span>
+                      <span className="text-neutral-400">{t("adminBookingsServiceName")}:</span>
                       <span className="font-bold text-neutral-900 dark:text-white capitalize">
-                        {isExp ? (meta?.title || "Trải nghiệm") : isCar ? (meta?.title || "Thuê xe") : (selectedBooking.room?.room_type?.name || "Phòng nghỉ")}
+                        {isExp ? (meta?.title || t("adminBookingsExperience")) : isCar ? (meta?.title || t("adminBookingsCarRental")) : (selectedBooking.room?.room_type?.name || t("adminBookingsStay"))}
                       </span>
                     </div>
 
                     {!isExp && !isCar && (
                       <div className="flex justify-between">
-                        <span className="text-neutral-400">Số Phòng:</span>
+                        <span className="text-neutral-400">{t("adminBookingsRoomNumber")}:</span>
                         <span className="font-bold text-neutral-900 dark:text-white">
-                          Room {selectedBooking.room?.room_number} (Tầng {selectedBooking.room?.floor})
+                          {t("adminBookingsRoomFloor", { number: selectedBooking.room?.room_number, floor: selectedBooking.room?.floor })}
                         </span>
                       </div>
                     )}
 
                     <div className="flex justify-between">
-                      <span className="text-neutral-400">Thời gian:</span>
+                      <span className="text-neutral-400">{t("adminBookingsTime")}:</span>
                       <span className="font-bold text-neutral-900 dark:text-white">
-                        {new Date(selectedBooking.check_in_date).toLocaleDateString("vi-VN")} ➔ {new Date(selectedBooking.check_out_date).toLocaleDateString("vi-VN")}
+                        {new Date(selectedBooking.check_in_date).toLocaleDateString(formattingLocale)} ➔ {new Date(selectedBooking.check_out_date).toLocaleDateString(formattingLocale)}
                       </span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-neutral-400">Số lượng:</span>
+                      <span className="text-neutral-400">{t("adminBookingsQuantity")}:</span>
                       <span className="font-bold text-neutral-900 dark:text-white">
-                        {selectedBooking.num_guests} {isExp || isCar ? "Người tham gia" : "Khách lưu trú"}
+                        {isExp || isCar
+                          ? t("adminBookingsParticipants", { count: selectedBooking.num_guests })
+                          : t("adminBookingsGuests", { count: selectedBooking.num_guests })}
                       </span>
                     </div>
 
                     <div className="flex justify-between pt-2 border-t border-neutral-100 dark:border-neutral-800">
-                      <span className="text-neutral-400 font-semibold">Tổng thanh toán:</span>
+                      <span className="text-neutral-400 font-semibold">{t("adminBookingsTotalPayment")}:</span>
                       <span className="font-extrabold text-lg text-primary-6000 dark:text-primary-400">
                         {displayPrice}
                       </span>
                     </div>
 
                     <div className="flex justify-between">
-                      <span className="text-neutral-400">Trạng thái thanh toán:</span>
+                      <span className="text-neutral-400">{t("adminBookingsPaymentStatus")}:</span>
                       <span className="font-bold text-emerald-600 dark:text-emerald-400">
-                        {selectedBooking.status === "PENDING" ? "⏳ Chờ duyệt thanh toán" :
-                         selectedBooking.status === "CANCELLED" ? "❌ Đã hủy" : "✓ Đã thanh toán"}
+                        {selectedBooking.status === "PENDING" ? t("adminBookingsPaymentPending") :
+                         selectedBooking.status === "CANCELLED" ? t("adminBookingsStatusCancelled") : t("adminBookingsPaid")}
                       </span>
                     </div>
 
@@ -540,9 +546,11 @@ export default function AdminBookingsPage() {
 
                       return (
                         <div className="flex justify-between mt-2 p-2 rounded-xl bg-primary-50 dark:bg-primary-950/20 border border-primary-100 dark:border-primary-900/40 text-xs">
-                          <span className="text-neutral-500 font-semibold">Phòng đang lưu trú:</span>
+                          <span className="text-neutral-500 font-semibold">{t("adminBookingsCurrentRoom")}:</span>
                           <span className="font-extrabold text-primary-700 dark:text-primary-300">
-                            {stayRoomNumber && stayRoomNumber !== "P101" ? `Phòng ${stayRoomNumber}` : "Chưa nhận phòng / Nơi khác"}
+                            {stayRoomNumber && stayRoomNumber !== "P101"
+                              ? t("adminBookingsRoomValue", { number: stayRoomNumber })
+                              : t("adminBookingsNoRoomAssigned")}
                           </span>
                         </div>
                       );
@@ -552,12 +560,12 @@ export default function AdminBookingsPage() {
 
                 {/* Right side: Check-in Guest Information (inputted by receptionist) */}
                 <div className="space-y-4">
-                  <h4 className="font-extrabold text-sm text-primary-6000 uppercase tracking-wider">Thông tin khách hàng khai báo</h4>
+                  <h4 className="font-extrabold text-sm text-primary-6000 uppercase tracking-wider">{t("adminBookingsCustomerInfo")}</h4>
                   
                   <div className="bg-neutral-50 dark:bg-neutral-800/40 p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 space-y-3 text-sm">
                     {/* User profile info */}
                     <div>
-                      <span className="text-xs text-neutral-400 block">Tài khoản đặt (User):</span>
+                      <span className="text-xs text-neutral-400 block">{t("adminBookingsBookingAccount")}:</span>
                       <span className="font-bold text-neutral-800 dark:text-neutral-200">
                         {selectedBooking.user?.full_name || "-"} ({selectedBooking.user?.email || "-"})
                       </span>
@@ -565,31 +573,31 @@ export default function AdminBookingsPage() {
 
                     {/* Reception check-in guest info */}
                     <div>
-                      <span className="text-xs text-neutral-400 block">Họ tên khách ở (Check-In Guest):</span>
+                      <span className="text-xs text-neutral-400 block">{t("adminBookingsGuestName")}:</span>
                       <span className="font-extrabold text-base text-primary-6000 dark:text-primary-400">
-                        {selectedBooking.guest?.full_name || selectedBooking.user?.full_name || "Chưa khai báo"}
+                        {selectedBooking.guest?.full_name || selectedBooking.user?.full_name || t("adminBookingsNotProvided")}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-xs text-neutral-400 block">Số CCCD / Hộ chiếu:</span>
+                      <span className="text-xs text-neutral-400 block">{t("adminBookingsIdentityNumber")}:</span>
                       <span className="font-bold text-neutral-800 dark:text-neutral-200 font-mono">
-                        {selectedBooking.guest?.id_card_number || "Chưa khai báo"} 
+                        {selectedBooking.guest?.id_card_number || t("adminBookingsNotProvided")}
                         {selectedBooking.guest?.id_card_type ? ` (${selectedBooking.guest.id_card_type})` : ""}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-xs text-neutral-400 block">Quốc tịch:</span>
+                      <span className="text-xs text-neutral-400 block">{t("adminBookingsNationality")}:</span>
                       <span className="font-bold text-neutral-800 dark:text-neutral-200">
-                        {selectedBooking.guest?.nationality || "Chưa khai báo"}
+                        {selectedBooking.guest?.nationality || t("adminBookingsNotProvided")}
                       </span>
                     </div>
 
                     <div>
-                      <span className="text-xs text-neutral-400 block">Địa chỉ thường trú:</span>
+                      <span className="text-xs text-neutral-400 block">{t("adminBookingsAddress")}:</span>
                       <span className="font-bold text-neutral-800 dark:text-neutral-200">
-                        {selectedBooking.guest?.address || "Chưa khai báo"}
+                        {selectedBooking.guest?.address || t("adminBookingsNotProvided")}
                       </span>
                     </div>
                   </div>
@@ -599,7 +607,7 @@ export default function AdminBookingsPage() {
               {/* Special Requests / Notes */}
               {selectedBooking.special_requests && !isExp && !isCar && (
                 <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 text-neutral-700 dark:text-neutral-300 rounded-2xl text-xs space-y-1">
-                  <span className="font-bold block uppercase tracking-wider text-amber-800 dark:text-amber-400">Yêu cầu đặc biệt của khách hàng:</span>
+                  <span className="font-bold block uppercase tracking-wider text-amber-800 dark:text-amber-400">{t("adminBookingsSpecialRequests")}:</span>
                   <p>{selectedBooking.special_requests}</p>
                 </div>
               )}
@@ -616,52 +624,52 @@ export default function AdminBookingsPage() {
                 const itineraries: Record<string, { gatheringTime: string, gatheringLocation: string, timeline: { time: string, title: string, desc: string }[] }> = {
                   climbing: {
                     gatheringTime: "07:00 AM",
-                    gatheringLocation: "Cổng số 1, Vườn Quốc Gia Hoàng Liên Sơn (Sapa, Lào Cai)",
+                    gatheringLocation: t("adminBookingsItineraryClimbingLocation"),
                     timeline: [
-                      { time: "07:00 - 07:30", title: "Tập trung & Khởi động", desc: "Gặp gỡ hướng dẫn viên chuyên nghiệp, kiểm tra trang bị an toàn cá nhân và khởi động làm nóng cơ thể." },
-                      { time: "07:30 - 11:30", title: "Chinh phục Chặng 1", desc: "Bắt đầu leo qua các dốc đá thoai thoải, xuyên qua khu rừng trúc nguyên sinh và vượt suối nhỏ." },
-                      { time: "11:30 - 12:30", title: "Nghỉ trưa tại Trạm dừng 2000m", desc: "Dùng bữa trưa dinh dưỡng với cơm lam bản địa, ngắm nhìn thung lũng Mường Hoa tuyệt đẹp từ trên cao." },
-                      { time: "12:30 - 15:30", title: "Bứt tốc lên đỉnh núi", desc: "Chinh phục các đoạn dốc đứng đá tai mèo đầy thử thách, hỗ trợ nhau bằng gậy leo núi và dây đai hỗ trợ." },
-                      { time: "15:30 - 16:30", title: "Chạm đỉnh Fansipan & Xuống núi", desc: "Chụp ảnh check-in đỉnh núi, nhận huy chương kỷ niệm chặng leo và chuẩn bị di chuyển xuống chân núi bằng hệ thống cáp treo hiện đại." }
+                      { time: "07:00 - 07:30", title: t("adminBookingsItineraryClimbing1Title"), desc: t("adminBookingsItineraryClimbing1Desc") },
+                      { time: "07:30 - 11:30", title: t("adminBookingsItineraryClimbing2Title"), desc: t("adminBookingsItineraryClimbing2Desc") },
+                      { time: "11:30 - 12:30", title: t("adminBookingsItineraryClimbing3Title"), desc: t("adminBookingsItineraryClimbing3Desc") },
+                      { time: "12:30 - 15:30", title: t("adminBookingsItineraryClimbing4Title"), desc: t("adminBookingsItineraryClimbing4Desc") },
+                      { time: "15:30 - 16:30", title: t("adminBookingsItineraryClimbing5Title"), desc: t("adminBookingsItineraryClimbing5Desc") }
                     ]
                   },
                   rowing: {
                     gatheringTime: "08:30 AM",
-                    gatheringLocation: "Bến thuyền du lịch sinh thái Tràng An (Ninh Bình)",
+                    gatheringLocation: t("adminBookingsItineraryRowingLocation"),
                     timeline: [
-                      { time: "08:30 - 09:00", title: "Chuẩn bị xuất bến", desc: "Nghe hướng dẫn kỹ thuật chèo xuồng Kayak cơ bản và quy tắc an toàn sông nước, mặc áo phao cứu hộ." },
-                      { time: "09:00 - 11:30", title: "Khám phá danh thắng Tràng An", desc: "Tự tay chèo thuyền xuôi dòng sào khê, luồn lách qua các hang động đá vôi tự nhiên thạch nhũ huyền ảo." },
-                      { time: "11:30 - 12:30", title: "Ghé thăm Đền cổ ven sông", desc: "Neo thuyền nghỉ ngơi, tham quan đền Trần cổ kính linh thiêng nằm cô độc giữa lòng núi đá vôi." },
-                      { time: "12:30 - 13:30", title: "Chèo ngược dòng & Cập bến", desc: "Chèo thong thả ngắm hoàng hôn đổ bóng trên dãy núi đá vôi, cập bến an toàn và bàn giao lại trang thiết bị chèo." }
+                      { time: "08:30 - 09:00", title: t("adminBookingsItineraryRowing1Title"), desc: t("adminBookingsItineraryRowing1Desc") },
+                      { time: "09:00 - 11:30", title: t("adminBookingsItineraryRowing2Title"), desc: t("adminBookingsItineraryRowing2Desc") },
+                      { time: "11:30 - 12:30", title: t("adminBookingsItineraryRowing3Title"), desc: t("adminBookingsItineraryRowing3Desc") },
+                      { time: "12:30 - 13:30", title: t("adminBookingsItineraryRowing4Title"), desc: t("adminBookingsItineraryRowing4Desc") }
                     ]
                   },
                   swimming: {
                     gatheringTime: "09:00 AM",
-                    gatheringLocation: "Quầy lễ tân bể bơi vô cực Fis Hotel (Tầng 5 tòa nhà chính)",
+                    gatheringLocation: t("adminBookingsItinerarySwimmingLocation"),
                     timeline: [
-                      { time: "09:00 - 09:15", title: "Nhận đồ & Check-in", desc: "Khách hàng xuất trình mã QR xác nhận dịch vụ tại quầy, nhận tủ đồ khóa từ thông minh và bộ khăn tắm." },
-                      { time: "09:15 - 10:30", title: "Trải nghiệm bơi vô cực ngắm thành phố", desc: "Tự do bơi lội trong làn nước mát lành, ngắm trọn vẹn view đường chân trời Hà Nội từ bể bơi vô cực trên cao." },
-                      { time: "10:30 - 11:30", title: "Thư giãn Sauna & Bể sục Jacuzzi", desc: "Tận hưởng phòng xông hơi đá muối thải độc và ngâm mình thư giãn trong dòng nước sủi bọt ấm Jacuzzi giúp hồi phục cơ bắp." }
+                      { time: "09:00 - 09:15", title: t("adminBookingsItinerarySwimming1Title"), desc: t("adminBookingsItinerarySwimming1Desc") },
+                      { time: "09:15 - 10:30", title: t("adminBookingsItinerarySwimming2Title"), desc: t("adminBookingsItinerarySwimming2Desc") },
+                      { time: "10:30 - 11:30", title: t("adminBookingsItinerarySwimming3Title"), desc: t("adminBookingsItinerarySwimming3Desc") }
                     ]
                   },
                   skiing: {
                     gatheringTime: "08:00 AM",
-                    gatheringLocation: "Trạm dịch vụ thiết bị trượt tuyết Zone A (Chân núi tuyết)",
+                    gatheringLocation: t("adminBookingsItinerarySkiingLocation"),
                     timeline: [
-                      { time: "08:00 - 09:00", title: "Nhận trang bị trượt tuyết", desc: "Nhận ủng, ván trượt, gậy và mũ bảo hiểm. Nghe hướng dẫn an toàn tuyết cơ bản." },
-                      { time: "09:00 - 12:00", title: "Trượt tuyết chặng sơ cấp & trung cấp", desc: "Luyện tập kỹ thuật phanh, rẽ trên dốc thoai thoải dưới sự giám sát của huấn luyện viên." },
-                      { time: "12:00 - 14:00", title: "Nghỉ ngơi & Trải nghiệm nâng cao", desc: "Dùng đồ uống nóng tại cabin gỗ và thử thách các đường trượt dốc cao hơn." }
+                      { time: "08:00 - 09:00", title: t("adminBookingsItinerarySkiing1Title"), desc: t("adminBookingsItinerarySkiing1Desc") },
+                      { time: "09:00 - 12:00", title: t("adminBookingsItinerarySkiing2Title"), desc: t("adminBookingsItinerarySkiing2Desc") },
+                      { time: "12:00 - 14:00", title: t("adminBookingsItinerarySkiing3Title"), desc: t("adminBookingsItinerarySkiing3Desc") }
                     ]
                   },
                   default: {
                     gatheringTime: "08:00 AM",
-                    gatheringLocation: "Quầy dịch vụ khách hàng tại Sảnh chính Fis Hotel",
+                    gatheringLocation: t("adminBookingsItineraryDefaultLocation"),
                     timeline: [
-                      { time: "08:00 - 08:30", title: "Gặp gỡ Hướng dẫn viên & Chuẩn bị di chuyển", desc: "Tập trung tại quầy dịch vụ sảnh chính khách sạn, gặp gỡ hướng dẫn viên và chuẩn bị xe du lịch của khách sạn." },
-                      { time: "08:30 - 11:30", title: "Khám phá danh lam thắng cảnh", desc: "Bắt đầu hành trình tham quan và trải nghiệm thực tế điểm đến theo hành trình của tour." },
-                      { time: "11:30 - 13:00", title: "Ăn trưa & Nghỉ ngơi", desc: "Thưởng thức ẩm thực đặc trưng địa phương tại nhà hàng đối tác của Fis Hotel." },
-                      { time: "13:00 - 16:30", title: "Hoạt động trải nghiệm & Tự do", desc: "Tiếp tục các hoạt động trải nghiệm, chụp ảnh kỷ niệm lưu niệm và khám phá phong cảnh xung quanh." },
-                      { time: "16:30 - 17:00", title: "Kết thúc hành trình & Đưa đón về khách sạn", desc: "Tập hợp đoàn và xe du lịch đưa đón của Fis Hotel đón quý khách trở lại khách sạn an toàn." }
+                      { time: "08:00 - 08:30", title: t("adminBookingsItineraryDefault1Title"), desc: t("adminBookingsItineraryDefault1Desc") },
+                      { time: "08:30 - 11:30", title: t("adminBookingsItineraryDefault2Title"), desc: t("adminBookingsItineraryDefault2Desc") },
+                      { time: "11:30 - 13:00", title: t("adminBookingsItineraryDefault3Title"), desc: t("adminBookingsItineraryDefault3Desc") },
+                      { time: "13:00 - 16:30", title: t("adminBookingsItineraryDefault4Title"), desc: t("adminBookingsItineraryDefault4Desc") },
+                      { time: "16:30 - 17:00", title: t("adminBookingsItineraryDefault5Title"), desc: t("adminBookingsItineraryDefault5Desc") }
                     ]
                   }
                 };
@@ -671,15 +679,15 @@ export default function AdminBookingsPage() {
                 return (
                   <div className="border-t border-neutral-100 dark:border-neutral-800 pt-4 space-y-4">
                     <h4 className="font-extrabold text-sm text-emerald-600 uppercase tracking-wider flex items-center gap-1.5">
-                      <Compass className="w-4 h-4" /> Lịch Trình Chi Tiết & Hướng Dẫn Tour
+                      <Compass className="w-4 h-4" /> {t("adminBookingsItinerary")}
                     </h4>
                     
                     <div className="bg-neutral-50 dark:bg-neutral-800/40 p-4 rounded-2xl border border-neutral-200 dark:border-neutral-800 space-y-2 text-xs">
                       <div>
-                        <strong className="text-neutral-500">Giờ tập trung:</strong> <span className="font-bold text-neutral-800 dark:text-neutral-200">{currentItinerary.gatheringTime}</span>
+                        <strong className="text-neutral-500">{t("adminBookingsGatheringTime")}:</strong> <span className="font-bold text-neutral-800 dark:text-neutral-200">{currentItinerary.gatheringTime}</span>
                       </div>
                       <div>
-                        <strong className="text-neutral-500">Địa điểm tập trung:</strong> <span className="font-bold text-neutral-800 dark:text-neutral-200">{currentItinerary.gatheringLocation}</span>
+                        <strong className="text-neutral-500">{t("adminBookingsGatheringLocation")}:</strong> <span className="font-bold text-neutral-800 dark:text-neutral-200">{currentItinerary.gatheringLocation}</span>
                       </div>
                     </div>
 
@@ -707,7 +715,7 @@ export default function AdminBookingsPage() {
                   onClick={() => setIsDetailModalOpen(false)}
                   className="px-6 py-2 text-sm font-bold rounded-xl bg-neutral-100 hover:bg-neutral-200 text-neutral-800 dark:bg-neutral-800 dark:text-white dark:hover:bg-neutral-700 transition-colors"
                 >
-                  Đóng cửa sổ
+                  {t("adminBookingsClose")}
                 </button>
               </div>
             </div>

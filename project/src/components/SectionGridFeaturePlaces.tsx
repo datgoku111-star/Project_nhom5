@@ -10,6 +10,7 @@ import StayCard2 from "./StayCard2";
 import { supabaseBrowser } from "@/lib/supabase";
 import { DEMO_AUTHORS } from "@/data/authors";
 import { DEMO_STAY_CATEGORIES } from "@/data/taxonomies";
+import { useTranslation } from "react-i18next";
 
 export interface SectionGridFeaturePlacesProps {
   stayListings?: StayDataType[];
@@ -24,14 +25,16 @@ export interface SectionGridFeaturePlacesProps {
 const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
   stayListings: initialStays,
   gridClass = "",
-  heading = "Featured places to stay",
-  subHeading = "Popular places to stay that Chisfis recommends for you",
+  heading,
+  subHeading,
   headingIsCenter,
-  tabs = ["Tất cả", "Standard", "Deluxe", "Suite", "Family"],
+  tabs = ["ALL", "Standard", "Deluxe", "Suite", "Family"],
   cardType = "card2",
 }) => {
+  const { t } = useTranslation();
   const [stays, setStays] = useState<StayDataType[]>([]);
-  const [activeTab, setActiveTab] = useState("Tất cả");
+  const [activeTab, setActiveTab] = useState("ALL");
+  const allTabLabel = t("allServices");
 
   useEffect(() => {
     if (initialStays && initialStays.length > 0) {
@@ -47,7 +50,7 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
           city,
           listingCategory: {
             ...DEMO_STAY_CATEGORIES[0],
-            name: item.bedrooms === 1 ? "Phòng đơn" : "Phòng kép"
+            name: item.bedrooms === 1 ? t("homeSingleRoom") : t("homeDoubleRoom")
           }
         };
       });
@@ -103,7 +106,7 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
               author: DEMO_AUTHORS[0],
               listingCategory: {
                 ...DEMO_STAY_CATEGORIES[0],
-                name: h.beds === 1 ? "Phòng đơn" : "Phòng kép"
+                name: h.beds === 1 ? t("homeSingleRoom") : t("homeDoubleRoom")
               },
               map: { 
                 lat: 55.2094559 + (index * 0.01) - 0.03, 
@@ -125,7 +128,7 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
               city,
               listingCategory: {
                 ...DEMO_STAY_CATEGORIES[0],
-                name: item.bedrooms === 1 ? "Phòng đơn" : "Phòng kép"
+                name: item.bedrooms === 1 ? t("homeSingleRoom") : t("homeDoubleRoom")
               }
             };
           });
@@ -145,7 +148,7 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
             city,
             listingCategory: {
               ...DEMO_STAY_CATEGORIES[0],
-              name: item.bedrooms === 1 ? "Phòng đơn" : "Phòng kép"
+              name: item.bedrooms === 1 ? t("homeSingleRoom") : t("homeDoubleRoom")
             }
           };
         });
@@ -169,10 +172,10 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
     return () => {
       supabaseBrowser.removeChannel(channel);
     };
-  }, [initialStays]);
+  }, [initialStays, t]);
 
   const filteredStays = stays.filter((stay) => {
-    if (activeTab === "Tất cả") return true;
+    if (activeTab === "ALL") return true;
     return stay.city === activeTab;
   });
 
@@ -195,11 +198,11 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
   return (
     <div className="nc-SectionGridFeaturePlaces relative">
       <HeaderFilter
-        tabActive={activeTab}
-        subHeading={subHeading}
-        tabs={tabs}
-        heading={heading}
-        onClickTab={(val) => setActiveTab(val)}
+        tabActive={activeTab === "ALL" ? allTabLabel : activeTab}
+        subHeading={subHeading ?? t("homeFeaturedRoomsSubHeading")}
+        tabs={tabs.map((tab) => (tab === "ALL" ? allTabLabel : tab))}
+        heading={heading ?? t("homeFeaturedRoomsHeading")}
+        onClickTab={(val) => setActiveTab(val === allTabLabel ? "ALL" : val)}
       />
       <div
         className={`grid gap-6 md:gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 ${gridClass}`}
@@ -207,7 +210,7 @@ const SectionGridFeaturePlaces: FC<SectionGridFeaturePlacesProps> = ({
         {filteredStays.slice(0, 8).map((stay) => renderCard(stay))}
       </div>
       <div className="flex mt-16 justify-center items-center">
-        <ButtonPrimary>Show me more</ButtonPrimary>
+        <ButtonPrimary>{t("showMore")}</ButtonPrimary>
       </div>
     </div>
   );

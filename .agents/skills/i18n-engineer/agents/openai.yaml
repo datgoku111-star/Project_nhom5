@@ -1,0 +1,5 @@
+interface:
+  display_name: "I18n Engineer"
+  short_description: "Audit and improve application localization"
+  default_prompt: "Use $i18n-engineer to audit this application's locale resources, switching behavior, and fallback handling."
+

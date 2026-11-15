@@ -138,7 +138,7 @@ export default function ExperienceOrdersPage() {
   const handleCancelBooking = async () => {
     if (!bookingToCancel) return;
     if (!cancelReason.trim()) {
-      alert("Please enter a cancellation reason.");
+      alert(t("bookingsCancellationReasonRequired"));
       return;
     }
 
@@ -156,11 +156,11 @@ export default function ExperienceOrdersPage() {
         fetchBookings();
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to cancel booking.");
+        alert(err.error || t("bookingsCancelFailed"));
       }
     } catch (err) {
       console.error("Cancel error:", err);
-      alert("An error occurred while cancelling the booking.");
+      alert(t("bookingsCancelError"));
     } finally {
       setIsCancelling(false);
     }
@@ -176,11 +176,11 @@ export default function ExperienceOrdersPage() {
         fetchBookings();
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to confirm booking.");
+        alert(err.error || t("bookingsConfirmFailed"));
       }
     } catch (err) {
       console.error("Confirm error:", err);
-      alert("An error occurred while confirming.");
+      alert(t("bookingsConfirmError"));
     } finally {
       setIsConfirming(null);
     }
@@ -191,7 +191,7 @@ export default function ExperienceOrdersPage() {
       <DashboardLayout>
         <div className="container py-20 text-center">
           <div className="w-8 h-8 border-4 border-primary-6000 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-neutral-500 font-medium">Loading Experience Reservations...</p>
+          <p className="text-neutral-500 font-medium">{t("experienceOrdersLoading")}</p>
         </div>
       </DashboardLayout>
     );
@@ -205,17 +205,17 @@ export default function ExperienceOrdersPage() {
           <div>
             <h1 className="text-3xl font-extrabold sm:text-4xl text-neutral-900 dark:text-white flex items-center gap-3">
               <Compass className="w-10 h-10 text-primary-6000" />
-              Experience Bookings Hub
+              {t("experienceOrdersTitle")}
             </h1>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-              Quản lý các lượt đặt dịch vụ trải nghiệm (tours, climbing, hiking,...) của khách lưu trú tại khách sạn.
+              {t("experienceOrdersSubtitle")}
             </p>
           </div>
           <button
             onClick={fetchBookings}
             className="px-5 py-2.5 bg-white dark:bg-neutral-800 hover:bg-neutral-50 dark:hover:bg-neutral-700 border border-neutral-300 dark:border-neutral-600 rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-2 text-neutral-700 dark:text-neutral-300"
           >
-            <RefreshCw className="w-4 h-4" /> Tải lại dữ liệu
+            <RefreshCw className="w-4 h-4" /> {t("carOrdersReload")}
           </button>
         </div>
 
@@ -223,12 +223,12 @@ export default function ExperienceOrdersPage() {
         <div className="flex flex-col md:flex-row gap-4 items-stretch md:items-center justify-between">
           <div className="flex flex-wrap gap-1.5 bg-neutral-100 dark:bg-neutral-800 p-1.5 rounded-2xl w-fit">
             {[
-              { id: "ALL", label: "Tất cả trạng thái" },
-              { id: "PENDING", label: "Chờ xác nhận" },
-              { id: "CONFIRMED", label: "Đã xác nhận" },
-              { id: "CHECKED_IN", label: "Đang tham gia" },
-              { id: "CHECKED_OUT", label: "Đã hoàn thành" },
-              { id: "CANCELLED", label: "Đã hủy" },
+              { id: "ALL", label: t("bookingsAllStatuses") },
+              { id: "PENDING", label: t("bookingsStatusPending") },
+              { id: "CONFIRMED", label: t("bookingsStatusConfirmed") },
+              { id: "CHECKED_IN", label: t("experienceOrdersParticipating") },
+              { id: "CHECKED_OUT", label: t("kitchenStatusCompleted") },
+              { id: "CANCELLED", label: t("bookingsStatusCancelled") },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -247,7 +247,7 @@ export default function ExperienceOrdersPage() {
           <form onSubmit={handleSearchSubmit} className="flex gap-2 w-full sm:w-auto min-w-[320px]">
             <div className="relative flex-grow">
               <Input
-                placeholder="Tìm ID đặt phòng, tên khách..."
+                placeholder={t("experienceOrdersSearchPlaceholder")}
                 value={searchKeyword}
                 onChange={(e) => setSearchKeyword(e.target.value)}
                 className="pl-9 h-10 text-sm rounded-xl"
@@ -258,7 +258,7 @@ export default function ExperienceOrdersPage() {
               type="submit"
               className="px-4 h-10 bg-primary-6000 hover:bg-primary-700 text-white font-bold text-xs rounded-xl transition-all"
             >
-              Tìm kiếm
+              {t("bookingsSearch")}
             </button>
           </form>
         </div>
@@ -269,20 +269,20 @@ export default function ExperienceOrdersPage() {
             <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-300">
               <thead className="bg-neutral-50 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 border-b border-neutral-200 dark:border-neutral-800">
                 <tr>
-                  <th className="px-6 py-4 font-extrabold">Booking ID</th>
-                  <th className="px-6 py-4 font-extrabold">Trải nghiệm</th>
-                  <th className="px-6 py-4 font-extrabold">Thông tin Khách</th>
-                  <th className="px-6 py-4 font-extrabold">Ngày thực hiện</th>
-                  <th className="px-6 py-4 font-extrabold">Trạng thái</th>
-                  <th className="px-6 py-4 font-extrabold">Tổng chi phí</th>
-                  <th className="px-6 py-4 font-extrabold text-right">Thao tác nhanh</th>
+                  <th className="px-6 py-4 font-extrabold">{t("bookingsBookingId")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("bookingsExperience")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("bookingsGuestInfo")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("experienceOrdersActivityDate")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("bookingsStatus")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("bookingsTotalAmount")}</th>
+                  <th className="px-6 py-4 font-extrabold text-right">{t("bookingsQuickOperations")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
                 {bookings.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="px-6 py-16 text-center text-neutral-400">
-                      Không tìm thấy lịch trình trải nghiệm nào phù hợp.
+                      {t("experienceOrdersNoResults")}
                     </td>
                   </tr>
                 ) : (
@@ -308,25 +308,25 @@ export default function ExperienceOrdersPage() {
                           <div className="flex items-center gap-1.5 flex-wrap">
                             <span>{booking.id.split("-")[0].toUpperCase()}</span>
                             <span className="px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                              Trải nghiệm
+                              {t("bookingsExperience")}
                             </span>
                           </div>
                         </td>
                         <td className="px-6 py-4">
                           <div className="font-extrabold text-neutral-900 dark:text-white capitalize">
-                            🧗 {meta?.title || "Tour Trải nghiệm"}
+                            🧗 {meta?.title || t("bookingsExperienceFallback")}
                           </div>
-                          <div className="text-xs text-neutral-500">{meta?.category || "Dịch vụ hoạt động"}</div>
+                          <div className="text-xs text-neutral-500">{meta?.category || t("experienceOrdersActivityService")}</div>
                           {meta?.room_id && (
                             <div className="text-xs text-primary-6000 font-bold mt-1">
-                              🚪 Phòng: {booking.room?.room_number || "Đang check-in"}
+                              🚪 {t("bookingsRoomNumber", { number: booking.room?.room_number || t("experienceOrdersCheckingIn") })}
                             </div>
                           )}
                         </td>
                         <td className="px-6 py-4">
                           <div className="font-bold text-neutral-900 dark:text-white flex items-center gap-1.5">
                             <UserIcon className="w-3.5 h-3.5 text-neutral-400" />
-                            <span>{booking.user?.full_name || booking.guest?.full_name || "Guest"}</span>
+                            <span>{booking.user?.full_name || booking.guest?.full_name || t("bookingsGuest")}</span>
                           </div>
                           {booking.user?.phone && (
                             <div className="text-xs text-neutral-400 font-mono mt-0.5">{booking.user.phone}</div>
@@ -343,11 +343,11 @@ export default function ExperienceOrdersPage() {
                           <span
                             className={`px-2.5 py-1 rounded-lg text-xs font-bold border ${getStatusBadge(booking.status)}`}
                           >
-                            {booking.status}
+                            {t(`bookingsStatus${booking.status === "CHECKED_IN" ? "CheckedIn" : booking.status === "CHECKED_OUT" ? "CheckedOut" : booking.status.charAt(0) + booking.status.slice(1).toLowerCase()}`, { defaultValue: booking.status })}
                           </span>
                           {booking.status === "CANCELLED" && cancelReasonText && (
                             <div className="text-[10px] text-red-600 dark:text-red-400 mt-2 font-medium italic break-words max-w-[150px]">
-                              Lý do: {cancelReasonText}
+                              {t("bookingsCancellationReason")}: {cancelReasonText}
                             </div>
                           )}
                         </td>
@@ -361,14 +361,14 @@ export default function ExperienceOrdersPage() {
                               disabled={isConfirming === booking.id}
                               className="inline-flex items-center px-3 py-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-sm transition-all disabled:opacity-50"
                             >
-                              <span>{isConfirming === booking.id ? "Confirming..." : "Confirm Booking"}</span>
+                              <span>{isConfirming === booking.id ? t("bookingsConfirming") : t("bookingsConfirm")}</span>
                             </button>
                           )}
                           <Link
                             href={`/bookings/${booking.id}` as Route}
                             className="inline-flex items-center px-3 py-1.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 font-semibold text-xs transition-all"
                           >
-                            <Eye className="w-3.5 h-3.5 mr-1" /> Chi tiết
+                            <Eye className="w-3.5 h-3.5 mr-1" /> {t("bookingsViewDetails")}
                           </Link>
                           {booking.status === "PENDING" && (
                             <button
@@ -378,7 +378,7 @@ export default function ExperienceOrdersPage() {
                               }}
                               className="inline-flex items-center px-3 py-1.5 rounded-xl bg-red-100 dark:bg-red-900/30 hover:bg-red-200 dark:hover:bg-red-900/50 text-red-700 dark:text-red-400 font-semibold text-xs transition-all"
                             >
-                              <XCircle className="w-3.5 h-3.5 mr-1" /> Hủy đặt
+                              <XCircle className="w-3.5 h-3.5 mr-1" /> {t("bookingsCancel")}
                             </button>
                           )}
                         </td>
@@ -421,19 +421,19 @@ export default function ExperienceOrdersPage() {
             >
               <div className="inline-block w-full max-w-md p-6 my-8 overflow-hidden text-left align-middle transition-all transform bg-white dark:bg-neutral-900 shadow-xl rounded-2xl">
                 <Dialog.Title as="h3" className="text-lg font-medium leading-6 text-gray-900 dark:text-white">
-                  Xác nhận hủy đặt dịch vụ trải nghiệm
+                  {t("bookingDetailCancelExperienceTitle")}
                 </Dialog.Title>
                 <div className="mt-2 text-sm text-gray-500 dark:text-neutral-400">
-                  Bạn có chắc chắn muốn hủy lượt đặt{" "}
+                  {t("experienceOrdersCancelQuestion")}{" "}
                   <span className="font-bold text-gray-800 dark:text-gray-200">
                     {bookingToCancel?.id.split("-")[0].toUpperCase()}
                   </span>
                   ?
                   <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 rounded-xl font-medium text-left">
-                    Nhập lý do hủy (lý do này sẽ được ghi nhận lại):
+                    {t("experienceOrdersCancelReasonHelp")}
                     <textarea
                       className="w-full mt-3 p-2 rounded-lg border border-blue-200 dark:border-blue-800 bg-white dark:bg-neutral-900 text-sm font-normal text-neutral-700 dark:text-neutral-300"
-                      placeholder="Lý do hủy đặt..."
+                      placeholder={t("bookingsCancellationReasonPlaceholder")}
                       value={cancelReason}
                       onChange={(e) => setCancelReason(e.target.value)}
                       rows={3}
@@ -443,10 +443,10 @@ export default function ExperienceOrdersPage() {
 
                 <div className="mt-6 flex justify-end gap-3">
                   <ButtonSecondary onClick={() => setCancelModalOpen(false)} disabled={isCancelling}>
-                    Không hủy
+                    {t("bookingsKeepBooking")}
                   </ButtonSecondary>
                   <ButtonPrimary onClick={handleCancelBooking} loading={isCancelling} className="bg-red-600 hover:bg-red-700">
-                    Xác nhận hủy đặt
+                    {t("bookingsConfirmCancel")}
                   </ButtonPrimary>
                 </div>
               </div>

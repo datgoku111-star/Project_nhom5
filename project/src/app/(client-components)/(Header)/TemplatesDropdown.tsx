@@ -1,3 +1,5 @@
+"use client";
+
 import { Popover, Transition } from "@headlessui/react";
 import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import { Fragment } from "react";
@@ -5,8 +7,53 @@ import { NAVIGATION_DEMO_2 } from "@/data/navigation";
 import { NavItemType } from "@/shared/Navigation/NavigationItem";
 import Link from "next/link";
 import Collection from "@/components/Collection";
+import { useTranslation } from "react-i18next";
+
+const NAVIGATION_TRANSLATION_KEYS: Record<string, string> = {
+  Home: "headerMenuHome",
+  "Online booking": "headerMenuOnlineBooking",
+  "Real estate": "headerMenuRealEstate",
+  "Home 3": "headerMenuHome3",
+  "Listing pages": "headerMenuListingPages",
+  "Stay listings": "headerMenuStayListings",
+  "Stay listings (map)": "headerMenuStayListingsMap",
+  "Stay detail": "headerMenuStayDetail",
+  "Food Services": "headerMenuFoodServices",
+  "Laundry Services": "headerMenuLaundryServices",
+  "Experiences listings": "headerMenuExperienceListings",
+  "Lịch trình trải nghiệm": "headerMenuExperienceItinerary",
+  "Experiences detail": "headerMenuExperienceDetail",
+  "Cars listings": "headerMenuCarListings",
+  "Car detail": "headerMenuCarDetail",
+  "Real estate listings": "headerMenuRealEstateListings",
+  "Real estate (map)": "headerMenuRealEstateMap",
+  "Flights listings": "headerMenuFlightListings",
+  Templates: "headerTemplates",
+  "Add listing": "headerMenuAddListing",
+  Checkout: "headerMenuCheckout",
+  "Pay done": "headerMenuPaymentComplete",
+  "Author page": "headerMenuAuthorPage",
+  "Account page": "headerMenuAccountPage",
+  Subscription: "headerMenuSubscription",
+  Admin: "headerMenuAdmin",
+  "Sự cố phòng": "headerMenuRoomIncidents",
+  "Đồ thất lạc": "headerMenuLostFound",
+  "Other pages": "headerMenuOtherPages",
+  "Blog page": "headerMenuBlog",
+  "Blog single": "headerMenuBlogDetail",
+  About: "headerMenuAbout",
+  "Contact us": "headerMenuContact",
+  Login: "headerMenuLogin",
+  Signup: "headerMenuSignup",
+};
 
 export default function TemplatesDropdown() {
+  const { t } = useTranslation();
+  const getNavigationLabel = (name: string) => {
+    const key = NAVIGATION_TRANSLATION_KEYS[name];
+    return key ? t(key) : name;
+  };
+
   const renderMegaMenuNavlink = (
     item: NavItemType,
     index: number,
@@ -21,7 +68,7 @@ export default function TemplatesDropdown() {
           href={item.href || ""}
           onClick={close}
         >
-          {item.name}
+          {getNavigationLabel(item.name)}
         </Link>
       </li>
     );
@@ -37,7 +84,7 @@ export default function TemplatesDropdown() {
                 ${open ? "" : "text-opacity-80"}
                 group h-10 sm:h-12 px-3 py-1.5 inline-flex items-center text-sm text-gray-800 dark:text-slate-300 font-medium hover:text-opacity-100 focus:outline-none `}
             >
-              <span className="">Templates</span>
+              <span className="">{t("headerTemplates")}</span>
               <ChevronDownIcon
                 className={`${open ? "-rotate-180" : ""}
                   ml-1 h-4 w-4 transition ease-in-out duration-150 `}
@@ -61,7 +108,7 @@ export default function TemplatesDropdown() {
                         {NAVIGATION_DEMO_2.map((item, index) => (
                           <div key={index}>
                             <p className="font-medium text-slate-900 dark:text-neutral-200">
-                              {item.name}
+                              {getNavigationLabel(item.name)}
                             </p>
                             <ul className="grid space-y-4 mt-4">
                               {item.children?.map((item, index) =>

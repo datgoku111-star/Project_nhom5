@@ -7,10 +7,16 @@ import { Route } from "@/routers/types";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import { ShoppingCart, Plus, Minus, Trash2, X, Shirt, Info, FileText } from "lucide-react";
 import type { Service, Booking } from "@/types/hotel";
+import { useTranslation } from "react-i18next";
+import { toFormattingLocale } from "@/lib/locale";
 
 export default function LaundryServicesPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  const { t, i18n } = useTranslation();
+  const formattingLocale = toFormattingLocale(
+    i18n.resolvedLanguage === "en" ? "en" : "vn",
+  );
 
   const [laundryServices, setLaundryServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -111,7 +117,7 @@ export default function LaundryServicesPage() {
 
   const handleSubmitOrder = async () => {
     if (!selectedBookingId) {
-      setError("Vui lòng chọn phòng lưu trú để giao nhận quần áo.");
+      setError(t("laundrySelectRoomError"));
       return;
     }
 
@@ -122,7 +128,7 @@ export default function LaundryServicesPage() {
     try {
       const cartEntries = Object.entries(cart);
       if (cartEntries.length === 0) {
-        setError("Giỏ hàng của bạn đang trống.");
+        setError(t("laundryCartEmpty"));
         setSubmitLoading(false);
         return;
       }
@@ -149,20 +155,20 @@ export default function LaundryServicesPage() {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Không thể gửi yêu cầu giặt là.");
+        throw new Error(errData.error || t("laundrySubmitError"));
       }
 
       setCart({});
       setNotes("");
       setIsCartOpen(false);
-      setSuccess("✅ Đã gửi yêu cầu giặt đồ thành công! Vui lòng đợi nhân viên Lễ Tân duyệt.");
+      setSuccess(t("laundrySubmitSuccess"));
       
       // Chuyển hướng sau 2 giây
       setTimeout(() => {
         router.push("/dashboard/customer" as Route);
       }, 2000);
     } catch (err: any) {
-      setError(err.message || "Đã xảy ra lỗi khi đặt dịch vụ.");
+      setError(err.message || t("laundryOrderError"));
     } finally {
       setSubmitLoading(false);
     }
@@ -172,7 +178,7 @@ export default function LaundryServicesPage() {
     return (
       <div className="container py-20 text-center">
         <div className="w-10 h-10 border-4 border-primary-6000 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-neutral-500 font-semibold">Đang tải...</p>
+        <p className="text-neutral-500 font-semibold">{t("loading")}</p>
       </div>
     );
   }
@@ -184,10 +190,10 @@ export default function LaundryServicesPage() {
         <div className="space-y-2">
           <h1 className="text-3xl font-extrabold sm:text-4xl text-neutral-900 dark:text-white flex items-center gap-3">
             <Shirt className="w-10 h-10 text-primary-6000 animate-pulse" />
-            Dịch Vụ Giặt Là (Laundry Services)
+            {t("laundryTitle")}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-sm">
-            Chọn loại quần áo và dịch vụ phù hợp để chúng tôi chăm sóc tốt nhất cho trang phục của bạn.
+            {t("laundryDesc")}
           </p>
         </div>
 
@@ -196,7 +202,7 @@ export default function LaundryServicesPage() {
           className="relative p-4 bg-primary-50 dark:bg-primary-950/40 text-primary-600 dark:text-primary-300 rounded-2xl hover:bg-primary-100 transition-all shadow-sm flex items-center gap-2 border border-primary-100 dark:border-primary-900"
         >
           <ShoppingCart className="w-6 h-6" />
-          <span className="font-bold text-sm hidden sm:inline">Giỏ đồ giặt</span>
+          <span className="font-bold text-sm hidden sm:inline">{t("laundryCart")}</span>
           {cartItemsCount > 0 && (
             <span className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white text-xs font-black rounded-full flex items-center justify-center border-2 border-white shadow animate-bounce">
               {cartItemsCount}
@@ -221,11 +227,11 @@ export default function LaundryServicesPage() {
       <div className="p-5 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-3xl text-sm text-blue-800 dark:text-blue-300 mb-8 flex gap-3.5">
         <Info className="w-6 h-6 shrink-0 mt-0.5" />
         <div className="space-y-1">
-          <p className="font-extrabold">Thông tin loại hình dịch vụ giặt là:</p>
+          <p className="font-extrabold">{t("laundryServiceInfo")}</p>
           <ul className="list-disc pl-5 space-y-1.5 text-xs text-neutral-600 dark:text-neutral-400">
-            <li><strong>Giặt thường (Wash & Fold):</strong> Làm sạch, làm khô và gấp gọn tiêu chuẩn. Giữ nguyên giá gốc (hệ số 1.0x).</li>
-            <li><strong>Chỉ ủi / là (Pressing Only):</strong> Làm phẳng quần áo không qua giặt. Tiết kiệm hơn (hệ số 0.8x).</li>
-            <li><strong>Giặt khô / Giặt hấp (Dry Cleaning):</strong> Làm sạch với dung môi chuyên dụng cho đồ cao cấp, vest, len dạ (hệ số 1.5x).</li>
+            <li>{t("laundryWashFoldInfo")}</li>
+            <li>{t("laundryPressingInfo")}</li>
+            <li>{t("laundryDryCleaningInfo")}</li>
           </ul>
         </div>
       </div>
@@ -249,15 +255,15 @@ export default function LaundryServicesPage() {
                   </span>
                 </div>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400 mb-5 leading-relaxed">
-                  {service.description || "Dịch vụ giặt ủi và sấy khô chất lượng cao đảm bảo vệ sinh."}
+                  {service.description || t("laundryDefaultDescription")}
                 </p>
               </div>
 
               <div className="flex items-center justify-between pt-4 border-t border-neutral-100 dark:border-neutral-800">
                 <div>
-                  <span className="text-[10px] text-neutral-400 block uppercase font-bold">Giá gốc:</span>
+                  <span className="text-[10px] text-neutral-400 block uppercase font-bold">{t("laundryBasePrice")}</span>
                   <span className="font-extrabold text-primary-6000 text-lg">
-                    {service.price.toLocaleString("vi-VN")} đ
+                    {service.price.toLocaleString(formattingLocale)} VND
                   </span>
                 </div>
 
@@ -284,7 +290,7 @@ export default function LaundryServicesPage() {
                     onClick={() => addToCart(service.id)}
                     className="px-4 py-2 rounded-xl bg-primary-50 hover:bg-primary-100 dark:bg-primary-950/40 text-primary-600 dark:text-primary-300 flex items-center gap-1 text-xs font-bold transition-all"
                   >
-                    <Plus className="w-4 h-4" /> Thêm đồ
+                    <Plus className="w-4 h-4" /> {t("laundryAddItem")}
                   </button>
                 )}
               </div>
@@ -305,7 +311,7 @@ export default function LaundryServicesPage() {
             <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex justify-between items-center bg-neutral-50 dark:bg-neutral-900">
               <h3 className="text-xl font-black text-neutral-900 dark:text-white flex items-center gap-2">
                 <Shirt className="w-5 h-5 text-primary-6000" />
-                Giỏ Đồ Giặt Của Bạn
+                {t("laundryYourCart")}
               </h3>
               <button
                 onClick={() => setIsCartOpen(false)}
@@ -320,12 +326,12 @@ export default function LaundryServicesPage() {
               {cartItemsCount === 0 ? (
                 <div className="text-center text-neutral-500 py-20 space-y-3">
                   <Shirt className="w-12 h-12 text-neutral-300 mx-auto" />
-                  <p className="font-semibold">Giỏ đồ giặt trống.</p>
-                  <p className="text-xs text-neutral-450">Vui lòng chọn loại quần áo cần giặt bên ngoài.</p>
+                  <p className="font-semibold">{t("laundryCartEmpty")}</p>
+                  <p className="text-xs text-neutral-450">{t("laundryCartEmptyHint")}</p>
                 </div>
               ) : (
                 <div className="space-y-5">
-                  <div className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Danh sách đã chọn:</div>
+                  <div className="text-xs font-bold text-neutral-400 uppercase tracking-wider">{t("laundrySelectedItems")}</div>
                   <div className="space-y-3 divide-y divide-neutral-100 dark:divide-neutral-800">
                     {Object.entries(cart).map(([id, qty]) => {
                       const service = laundryServices.find((s) => s.id === id);
@@ -338,12 +344,12 @@ export default function LaundryServicesPage() {
                               {service.name.replace("Laundry - ", "")}
                             </h4>
                             <span className="text-xs text-neutral-500 dark:text-neutral-450 font-medium">
-                              {adjustedPrice.toLocaleString("vi-VN")} đ x {qty}
+                              {adjustedPrice.toLocaleString(formattingLocale)} VND x {qty}
                             </span>
                           </div>
                           <div className="flex items-center space-x-3">
                             <span className="font-extrabold text-sm text-neutral-850 dark:text-neutral-150">
-                              {(adjustedPrice * qty).toLocaleString("vi-VN")} đ
+                              {(adjustedPrice * qty).toLocaleString(formattingLocale)} VND
                             </span>
                             <button
                               onClick={() => clearItemFromCart(id)}
@@ -366,23 +372,23 @@ export default function LaundryServicesPage() {
                 {/* Select Service Type */}
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
-                    Loại hình giặt là:
+                    {t("laundryServiceType")}
                   </label>
                   <select
                     value={serviceType}
                     onChange={(e) => setServiceType(e.target.value as any)}
                     className="block w-full text-sm rounded-xl border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-primary-500 focus:border-primary-500 py-2.5 font-bold text-neutral-800 dark:text-neutral-200"
                   >
-                    <option value="Wash & Fold">Giặt thường (Wash & Fold) [x1.0]</option>
-                    <option value="Dry Cleaning">Giặt hấp/Giặt khô (Dry Cleaning) [x1.5]</option>
-                    <option value="Pressing Only">Chỉ ủi/là (Pressing Only) [x0.8]</option>
+                    <option value="Wash & Fold">{t("laundryTypes.washFold")}</option>
+                    <option value="Dry Cleaning">{t("laundryTypes.dryCleaning")}</option>
+                    <option value="Pressing Only">{t("laundryTypes.pressingOnly")}</option>
                   </select>
                 </div>
 
                 {/* Selected Room */}
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400">
-                    Phòng nhận & trả quần áo:
+                    {t("laundryPickupRoom")}
                   </label>
                   {bookings.length > 0 ? (
                     <select
@@ -392,13 +398,13 @@ export default function LaundryServicesPage() {
                     >
                       {bookings.map((b) => (
                         <option key={b.id} value={b.id}>
-                          Phòng {b.room?.room_number} (Đang ở)
+                          {t("laundryActiveRoom", { room: b.room?.room_number })}
                         </option>
                       ))}
                     </select>
                   ) : (
                     <div className="p-3 bg-red-50 dark:bg-red-950/20 text-red-600 dark:text-red-400 rounded-xl text-xs font-bold border border-red-200 dark:border-red-900/50">
-                      ⚠️ Bạn cần check-in ở phòng để sử dụng dịch vụ này!
+                      {t("laundryCheckinRequired")}
                     </div>
                   )}
                 </div>
@@ -407,25 +413,25 @@ export default function LaundryServicesPage() {
                 <div className="space-y-2">
                   <label className="block text-xs font-bold uppercase tracking-wider text-neutral-600 dark:text-neutral-400 flex items-center gap-1">
                     <FileText className="w-3.5 h-3.5" />
-                    Ghi chú của khách hàng:
+                    {t("laundryCustomerNotes")}
                   </label>
                   <textarea
                     value={notes}
                     onChange={(e) => setNotes(e.target.value)}
-                    placeholder="Ví dụ: món nào dễ phai màu, vết bẩn cần tẩy kỹ..."
+                    placeholder={t("laundryNotesPlaceholder")}
                     className="w-full text-sm rounded-xl border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 focus:ring-primary-500 focus:border-primary-500 py-2.5 px-3 h-20 text-neutral-700 dark:text-neutral-300"
                   />
                 </div>
 
                 {/* Total Price Section */}
                 <div className="flex justify-between items-center py-2 border-t border-b border-dashed border-neutral-200 dark:border-neutral-700">
-                  <span className="font-extrabold text-sm text-neutral-750 dark:text-neutral-300">Tổng thanh toán (nợ phòng):</span>
+                  <span className="font-extrabold text-sm text-neutral-750 dark:text-neutral-300">{t("laundryTotal")}</span>
                   <div className="text-right">
                     <span className="text-xl font-black text-red-600 dark:text-red-400 block">
-                      {finalTotal.toLocaleString("vi-VN")} đ
+                      {finalTotal.toLocaleString(formattingLocale)} VND
                     </span>
                     <span className="text-[10px] text-neutral-400 block font-mono">
-                      (Đã nhân hệ số loại giặt x{multiplier})
+                      {t("laundryMultiplier", { multiplier })}
                     </span>
                   </div>
                 </div>
@@ -437,7 +443,7 @@ export default function LaundryServicesPage() {
                   disabled={submitLoading || !selectedBookingId}
                   className="w-full h-12 text-sm font-black shadow-lg"
                 >
-                  ⚡ Xác nhận yêu cầu giặt là
+                  {t("laundryConfirm")}
                 </ButtonPrimary>
               </div>
             )}

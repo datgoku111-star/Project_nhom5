@@ -10,11 +10,14 @@ import ButtonPrimary from "@/shared/ButtonPrimary";
 import type { Service, Booking } from "@/types/hotel";
 import { ShoppingCart, Plus, Minus, X, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import i18n from "@/lib/i18n";
+import { toFormattingLocale } from "@/lib/locale";
 
 export default function ServicesPage() {
   const { user, isLoading } = useAuth();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const formattingLocale = toFormattingLocale(
+    i18n.resolvedLanguage === "en" ? "en" : "vn",
+  );
   const router = useRouter();
 
   const [services, setServices] = useState<Service[]>([]);
@@ -150,13 +153,13 @@ export default function ServicesPage() {
           booking_id: selectedBookingId,
           total_amount: cartTotal,
           items,
-          notes: `Khách đặt từ phòng ${roomNum}`,
+          notes: t("servicesOrderNote", { room: roomNum }),
         }),
       });
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Không thể gửi yêu cầu đặt món");
+        throw new Error(errData.error || t("servicesPlaceOrderError"));
       }
 
       setCart({});
@@ -165,11 +168,11 @@ export default function ServicesPage() {
       if (user?.role === "CUSTOMER") {
         router.push("/dashboard/customer" as Route);
       } else {
-        setSuccess("✅ Đã gửi đơn đặt món thành công! Đơn hàng đã gửi tới Lễ Tân để duyệt & chuyển xuống Bếp.");
+        setSuccess(t("servicesDirectOrderSuccess"));
         setTimeout(() => setSuccess(""), 6000);
       }
     } catch (err: any) {
-      setError(err.message || "An error occurred");
+      setError(err.message || t("genericError"));
     } finally {
       setOrderLoading(false);
     }
@@ -228,9 +231,9 @@ export default function ServicesPage() {
       <div className="flex justify-between items-center mb-10">
         <div>
           <h2 className="text-3xl font-semibold sm:text-4xl">
-            "Order Foods"
+            {t("servicesFoodTitle")}
           </h2>
-          <p className="text-neutral-500 mt-2">"Order delicious food and drinks directly to your room."</p>
+          <p className="text-neutral-500 mt-2">{t("servicesFoodDesc")}</p>
         </div>
 
         <button
@@ -301,7 +304,7 @@ export default function ServicesPage() {
             <div className="flex items-center justify-between mt-auto pt-4 border-t border-neutral-100 dark:border-neutral-800">
               <span className="font-semibold text-primary-6000">
                 {new Intl.NumberFormat(
-                  i18n.language === "vn" ? "vi-VN" : "en-US",
+                  formattingLocale,
                   { style: "currency", currency: "VND" },
                 ).format(service.price)}
               </span>
@@ -376,7 +379,7 @@ export default function ServicesPage() {
                           <h4 className="font-medium">{service.name}</h4>
                           <span className="text-sm text-neutral-500">
                             {new Intl.NumberFormat(
-                              i18n.language === "vn" ? "vi-VN" : "en-US",
+                              formattingLocale,
                               { style: "currency", currency: "VND" },
                             ).format(service.price)}{" "}
                             x {qty}
@@ -385,7 +388,7 @@ export default function ServicesPage() {
                         <div className="flex items-center space-x-4">
                           <span className="font-semibold">
                             {new Intl.NumberFormat(
-                              i18n.language === "vn" ? "vi-VN" : "en-US",
+                              formattingLocale,
                               { style: "currency", currency: "VND" },
                             ).format(service.price * qty)}
                           </span>
@@ -430,11 +433,11 @@ export default function ServicesPage() {
                 )}
 
                 <div className="flex justify-between items-center mb-4 text-lg font-semibold">
-                  <span>Total</span>
+                  <span>{t("servicesTotal")}</span>
 
                   <span className="text-primary-6000">
                     {new Intl.NumberFormat(
-                      i18n.language === "vn" ? "vi-VN" : "en-US",
+                      formattingLocale,
                       { style: "currency", currency: "VND" },
                     ).format(cartTotal)}
                   </span>
@@ -447,7 +450,7 @@ export default function ServicesPage() {
                     disabled={orderLoading || !selectedBookingId}
                     className="w-full h-12 text-sm font-extrabold shadow-lg"
                   >
-                    ⚡ Đặt Món & Chuyển Lên Lễ Tân (Ghi Nợ Phòng)
+                    {t("servicesDirectOrderAction")}
                   </ButtonPrimary>
                   <button
                     type="button"
@@ -455,7 +458,7 @@ export default function ServicesPage() {
                     disabled={orderLoading || !selectedBookingId}
                     className="w-full py-2.5 rounded-xl border border-neutral-300 dark:border-neutral-700 text-xs font-bold text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
                   >
-                    💳 Hoặc Thanh Toán VietQR / PayOS Trực Tuyến
+                    {t("servicesOnlinePaymentAction")}
                   </button>
                 </div>
               </div>

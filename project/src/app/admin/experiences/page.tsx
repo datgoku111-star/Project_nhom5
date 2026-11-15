@@ -18,9 +18,15 @@ import {
   DollarSign
 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase";
+import { useTranslation } from "react-i18next";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
 import Input from "@/shared/Input";
+import {
+  DEFAULT_LANGUAGE,
+  isAppLanguage,
+  toFormattingLocale,
+} from "@/lib/locale";
 
 interface Experience {
   id: string;
@@ -35,11 +41,27 @@ interface Experience {
   created_at?: string;
 }
 
+type ExperienceFormError = {
+  kind: "requiredFields" | "upload" | "imageRequired" | "save";
+  message?: string;
+};
+
 export default function AdminExperiencesPage() {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+  const formatPrice = (price: number) =>
+    new Intl.NumberFormat(formattingLocale, {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(price);
   const [experiences, setExperiences] = useState<Experience[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [hasLoadError, setHasLoadError] = useState(false);
 
   // States của Modal
   const [isOpenModal, setIsOpenModal] = useState(false);
@@ -58,7 +80,20 @@ export default function AdminExperiencesPage() {
   // States tải lên ảnh
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [formError, setFormError] = useState("");
+  const [formError, setFormError] = useState<ExperienceFormError | null>(null);
+
+  const getFormErrorMessage = (error: ExperienceFormError) => {
+    switch (error.kind) {
+      case "requiredFields":
+        return t("adminExperiencesRequiredFields");
+      case "upload":
+        return t("adminExperiencesUploadError", { message: error.message });
+      case "imageRequired":
+        return t("adminExperiencesImageRequired");
+      case "save":
+        return t("adminExperiencesSaveError", { message: error.message });
+    }
+  };
 
   // Dữ liệu mẫu (Fallback data)
   const fallbackExperiences: Experience[] = [
@@ -155,7 +190,7 @@ export default function AdminExperiencesPage() {
   // Tải danh sách experiences từ Supabase
   const fetchExperiences = async () => {
     setLoading(true);
-    setErrorMsg(null);
+    setHasLoadError(false);
     try {
       const { data, error } = await supabaseBrowser
         .from("experiences")
@@ -171,7 +206,7 @@ export default function AdminExperiencesPage() {
       }
     } catch (err: any) {
       console.warn("Lỗi fetch experiences, hiển thị dữ liệu demo:", err.message);
-      setErrorMsg("Không thể tải dữ liệu từ Supabase. Đang hiển thị dữ liệu demo.");
+      setHasLoadError(true);
       setExperiences(fallbackExperiences);
     } finally {
       setLoading(false);
@@ -194,7 +229,7 @@ export default function AdminExperiencesPage() {
     setFormCity("New York");
     setFormImageUrl("");
     setImageFile(null);
-    setFormError("");
+    setFormError(null);
     setIsOpenModal(true);
   };
 
@@ -210,7 +245,7 @@ export default function AdminExperiencesPage() {
     setFormCity(exp.city);
     setFormImageUrl(exp.image_url);
     setImageFile(null);
-    setFormError("");
+    setFormError(null);
     setIsOpenModal(true);
   };
 
@@ -239,10 +274,10 @@ export default function AdminExperiencesPage() {
   // Lưu dữ liệu
   const handleSaveExperience = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError("");
+    setFormError(null);
     
     if (!formTitle.trim() || !formLocation.trim()) {
-      setFormError("Vui lòng điền đầy đủ Tên trải nghiệm và Địa chỉ.");
+      setFormError({ kind: "requiredFields" });
       return;
     }
 
@@ -255,12 +290,14 @@ export default function AdminExperiencesPage() {
         try {
           finalImageUrl = await uploadImageToStorage(imageFile);
         } catch (uploadErr: any) {
-          throw new Error("Lỗi tải ảnh lên Storage: " + uploadErr.message);
+          setFormError({ kind: "upload", message: uploadErr.message });
+          return;
         }
       }
 
       if (!finalImageUrl) {
-        throw new Error("Vui lòng chọn ảnh trải nghiệm hoặc cung cấp link ảnh.");
+        setFormError({ kind: "imageRequired" });
+        return;
       }
 
       const experienceData = {
@@ -306,7 +343,7 @@ export default function AdminExperiencesPage() {
       setIsOpenModal(false);
     } catch (err: any) {
       console.error("Lỗi khi lưu trải nghiệm:", err);
-      setFormError(err.message || "Đã xảy ra lỗi trong quá trình lưu dữ liệu.");
+      setFormError({ kind: "save", message: err.message });
     } finally {
       setUploadingImage(false);
     }
@@ -314,7 +351,7 @@ export default function AdminExperiencesPage() {
 
   // Xóa trải nghiệm
   const handleDeleteExperience = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa trải nghiệm này không?")) return;
+    if (!confirm(t("adminExperiencesConfirmDelete"))) return;
 
     try {
       if (id.startsWith("mock-")) {
@@ -329,7 +366,7 @@ export default function AdminExperiencesPage() {
         await fetchExperiences();
       }
     } catch (err: any) {
-      alert("Lỗi khi xóa trải nghiệm: " + err.message);
+      alert(t("adminExperiencesDeleteError", { message: err.message }));
     }
   };
 
@@ -347,29 +384,29 @@ export default function AdminExperiencesPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-white flex items-center space-x-3">
             <Compass className="w-8 h-8 text-primary-600" />
-            <span>Quản Lý Experiences (Trải Nghiệm)</span>
+            <span>{t("adminExperiencesTitle")}</span>
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 mt-1.5 text-sm">
-            Quản trị viên có toàn quyền CRUD các trải nghiệm du lịch, đồng bộ hình ảnh qua Storage và cập nhật trực tiếp lên trang chủ.
+            {t("adminExperiencesSubtitle")}
           </p>
         </div>
         <ButtonPrimary onClick={handleOpenAddModal} className="flex items-center space-x-2">
           <Plus className="w-5 h-5" />
-          <span>Thêm Trải Nghiệm Mới</span>
+          <span>{t("adminExperiencesAdd")}</span>
         </ButtonPrimary>
       </div>
 
       {/* DB Connection Alert */}
-      {errorMsg && (
+      {hasLoadError && (
         <div className="p-4 bg-amber-50 border-l-4 border-amber-500 rounded-r-2xl flex items-center space-x-3 text-amber-800 text-sm">
           <AlertTriangle className="w-5 h-5 flex-shrink-0 text-amber-600" />
-          <span>{errorMsg}</span>
+          <span>{t("adminExperiencesLoadFallback")}</span>
           <button 
             onClick={fetchExperiences} 
             className="ml-auto underline flex items-center space-x-1 hover:text-amber-950 font-bold"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Thử lại</span>
+            <span>{t("adminExperiencesRetry")}</span>
           </button>
         </div>
       )}
@@ -382,7 +419,7 @@ export default function AdminExperiencesPage() {
           </span>
           <input
             type="text"
-            placeholder="Tìm theo tên trải nghiệm, địa chỉ, thành phố..."
+            placeholder={t("adminExperiencesSearchPlaceholder")}
             className="block w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900 dark:text-white font-medium"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -396,15 +433,15 @@ export default function AdminExperiencesPage() {
           <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700 text-left text-xs">
             <thead className="bg-neutral-50 dark:bg-neutral-900/40 text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">
               <tr>
-                <th scope="col" className="px-6 py-4.5 w-16 text-center">STT</th>
-                <th scope="col" className="px-6 py-4.5">Ảnh bìa</th>
-                <th scope="col" className="px-6 py-4.5">Tên trải nghiệm</th>
-                <th scope="col" className="px-6 py-4.5">Địa chỉ</th>
-                <th scope="col" className="px-6 py-4.5">Thành phố (Lọc)</th>
-                <th scope="col" className="px-6 py-4.5">Giá / Người</th>
-                <th scope="col" className="px-6 py-4.5 text-center">Tối đa khách</th>
-                <th scope="col" className="px-6 py-4.5 text-center">Đánh giá</th>
-                <th scope="col" className="px-6 py-4.5 text-right">Thao tác</th>
+                <th scope="col" className="px-6 py-4.5 w-16 text-center">{t("adminExperiencesColumnNumber")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminExperiencesColumnCover")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminExperiencesColumnName")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminExperiencesColumnLocation")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminExperiencesColumnCity")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminExperiencesColumnPrice")}</th>
+                <th scope="col" className="px-6 py-4.5 text-center">{t("adminExperiencesColumnGuests")}</th>
+                <th scope="col" className="px-6 py-4.5 text-center">{t("adminExperiencesColumnRating")}</th>
+                <th scope="col" className="px-6 py-4.5 text-right">{t("adminExperiencesColumnActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
@@ -425,7 +462,7 @@ export default function AdminExperiencesPage() {
               ) : filteredExperiences.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-16 text-neutral-500 dark:text-neutral-400 font-medium">
-                    Không tìm thấy trải nghiệm nào phù hợp.
+                    {t("adminExperiencesEmpty")}
                   </td>
                 </tr>
               ) : (
@@ -459,13 +496,13 @@ export default function AdminExperiencesPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap font-extrabold text-neutral-900 dark:text-white">
-                      {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(exp.price)}
-                      <span className="text-[10px] text-neutral-400 font-normal"> /người</span>
+                      {formatPrice(exp.price)}
+                      <span className="text-[10px] text-neutral-400 font-normal"> {t("adminExperiencesPerPerson")}</span>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap text-neutral-600 dark:text-neutral-300 font-semibold">
                       <div className="flex items-center justify-center space-x-1">
                         <Users className="w-3.5 h-3.5 text-neutral-400" />
-                        <span>{exp.guests} khách max</span>
+                        <span>{t("adminExperiencesGuestCapacity", { count: exp.guests })}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 text-center whitespace-nowrap">
@@ -480,14 +517,16 @@ export default function AdminExperiencesPage() {
                         <button
                           onClick={() => handleOpenEditModal(exp)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Sửa"
+                          title={t("adminExperiencesEdit")}
+                          aria-label={t("adminExperiencesEdit")}
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteExperience(exp.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Xóa"
+                          title={t("adminExperiencesDelete")}
+                          aria-label={t("adminExperiencesDelete")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -508,11 +547,15 @@ export default function AdminExperiencesPage() {
             
             <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-700">
               <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-                {editingExperience ? "Sửa Thông Tin Trải Nghiệm" : "Thêm Trải Nghiệm Mới"}
+                {editingExperience
+                  ? t("adminExperiencesEditTitle")
+                  : t("adminExperiencesAddTitle")}
               </h3>
               <button 
                 onClick={() => setIsOpenModal(false)}
                 className="p-1 rounded-full text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+                title={t("adminExperiencesClose")}
+                aria-label={t("adminExperiencesClose")}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -521,32 +564,32 @@ export default function AdminExperiencesPage() {
             <form onSubmit={handleSaveExperience} className="p-6 space-y-4 max-h-[75vh] overflow-y-auto">
               {formError && (
                 <div className="p-3 bg-red-50 text-red-700 text-xs rounded-xl font-medium border border-red-200">
-                  {formError}
+                  {getFormErrorMessage(formError)}
                 </div>
               )}
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                  Tên Trải Nghiệm <span className="text-red-500">*</span>
+                  {t("adminExperiencesNameField")} <span className="text-red-500">*</span>
                 </label>
                 <Input 
                   type="text" 
                   value={formTitle} 
                   onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="Ví dụ: Generate Interactive Markets..."
+                  placeholder={t("adminExperiencesNamePlaceholder")}
                   required
                 />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                  Địa Chỉ Khu Vực <span className="text-red-500">*</span>
+                  {t("adminExperiencesLocationField")} <span className="text-red-500">*</span>
                 </label>
                 <Input 
                   type="text" 
                   value={formLocation} 
                   onChange={(e) => setFormLocation(e.target.value)}
-                  placeholder="Ví dụ: 2 Warner Alley..."
+                  placeholder={t("adminExperiencesLocationPlaceholder")}
                   required
                 />
               </div>
@@ -554,7 +597,7 @@ export default function AdminExperiencesPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Thành Phố Lọc <span className="text-red-500">*</span>
+                    {t("adminExperiencesCityField")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formCity}
@@ -571,7 +614,7 @@ export default function AdminExperiencesPage() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Giá / Người ($) <span className="text-red-500">*</span>
+                    {t("adminExperiencesPriceField")} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="number" 
@@ -586,7 +629,7 @@ export default function AdminExperiencesPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Số Khách Max
+                    {t("adminExperiencesGuestsField")}
                   </label>
                   <Input 
                     type="number" 
@@ -598,7 +641,7 @@ export default function AdminExperiencesPage() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Đánh Giá Sao
+                    {t("adminExperiencesRatingField")}
                   </label>
                   <Input 
                     type="number" 
@@ -612,7 +655,7 @@ export default function AdminExperiencesPage() {
 
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300">
-                    Số Lượt Đánh Giá
+                    {t("adminExperiencesReviewCountField")}
                   </label>
                   <Input 
                     type="number" 
@@ -626,7 +669,7 @@ export default function AdminExperiencesPage() {
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-300 font-semibold flex items-center space-x-1">
                   <ImageIcon className="w-3.5 h-3.5 text-neutral-450" />
-                  <span>Hình ảnh trải nghiệm</span>
+                  <span>{t("adminExperiencesImageField")}</span>
                 </label>
                 
                 <div className="mt-1 flex flex-col items-center justify-center border-2 border-dashed border-neutral-300 dark:border-neutral-700 rounded-2xl p-4 bg-neutral-50 dark:bg-neutral-900/50 hover:bg-neutral-100/40 transition-colors">
@@ -645,13 +688,15 @@ export default function AdminExperiencesPage() {
                   <label htmlFor="image-file-input" className="cursor-pointer text-center space-y-1">
                     <ImageIcon className="mx-auto h-8 w-8 text-neutral-400" />
                     <span className="block text-[11px] text-neutral-600 dark:text-neutral-400 font-bold">
-                      {imageFile ? `Đã chọn: ${imageFile.name}` : "Tải ảnh từ máy tính lên"}
+                      {imageFile
+                        ? t("adminExperiencesSelectedFile", { name: imageFile.name })
+                        : t("adminExperiencesUploadPrompt")}
                     </span>
-                    <span className="block text-[10px] text-neutral-400">PNG, JPG, JPEG tối đa 5MB</span>
+                    <span className="block text-[10px] text-neutral-400">{t("adminExperiencesUploadHint")}</span>
                   </label>
                 </div>
 
-                <div className="mt-2 text-center text-neutral-400 text-[10px] font-bold">Hoặc dùng Link URL ảnh trực tiếp:</div>
+                <div className="mt-2 text-center text-neutral-400 text-[10px] font-bold">{t("adminExperiencesImageUrlLabel")}</div>
                 <Input 
                   type="text" 
                   value={formImageUrl} 
@@ -664,10 +709,14 @@ export default function AdminExperiencesPage() {
               </div>
 
               <div className="flex justify-end space-x-3 pt-4 border-t border-neutral-150 dark:border-neutral-750">
-                <ButtonThird type="button" onClick={() => setIsOpenModal(false)}>Hủy</ButtonThird>
+                <ButtonThird type="button" onClick={() => setIsOpenModal(false)}>{t("adminExperiencesCancel")}</ButtonThird>
                 <ButtonPrimary type="submit" disabled={uploadingImage} className="flex items-center space-x-2">
                   {uploadingImage && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>{editingExperience ? "Cập Nhật" : "Tạo Mới"}</span>
+                  <span>
+                    {editingExperience
+                      ? t("adminExperiencesUpdate")
+                      : t("adminExperiencesCreate")}
+                  </span>
                 </ButtonPrimary>
               </div>
             </form>

@@ -7,6 +7,8 @@ import DatePickerCustomHeaderTwoMonth from "@/components/DatePickerCustomHeaderT
 import DatePickerCustomDay from "@/components/DatePickerCustomDay";
 import DatePicker from "react-datepicker";
 import ClearDataButton from "../ClearDataButton";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export interface StayDatesRangeInputProps {
   className?: string;
@@ -17,6 +19,11 @@ const StayDatesRangeInput: FC<StayDatesRangeInputProps> = ({
   className = "[ lg:nc-flex-2 ]",
   fieldClassName = "[ nc-hero-field-padding ]",
 }) => {
+  const { t, i18n } = useTranslation();
+  const activeLanguage = isAppLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(activeLanguage);
   const [startDate, setStartDate] = useState<Date | null>(
     new Date()
   );
@@ -37,20 +44,20 @@ const StayDatesRangeInput: FC<StayDatesRangeInputProps> = ({
         </div>
         <div className="flex-grow text-left">
           <span className="block xl:text-lg font-semibold">
-            {startDate?.toLocaleDateString("en-US", {
+            {startDate?.toLocaleDateString(formattingLocale, {
               month: "short",
               day: "2-digit",
-            }) || "Add dates"}
+            }) || t("homeSearchAddDates")}
             {endDate
               ? " - " +
-                endDate?.toLocaleDateString("en-US", {
+                endDate?.toLocaleDateString(formattingLocale, {
                   month: "short",
                   day: "2-digit",
                 })
               : ""}
           </span>
           <span className="block mt-1 text-sm text-neutral-400 leading-none font-light">
-            {"Check in - Check out"}
+            {t("homeSearchCheckInOut")}
           </span>
         </div>
       </>

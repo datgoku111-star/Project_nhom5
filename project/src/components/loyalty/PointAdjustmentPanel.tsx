@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranslation } from 'react-i18next';
 
 export default function PointAdjustmentPanel({ customerId }: { customerId: string }) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string>('');
   const [success, setSuccess] = useState<string>('');
@@ -38,17 +40,17 @@ export default function PointAdjustmentPanel({ customerId }: { customerId: strin
       const result = await res.json();
 
       if (!res.ok) {
-        setError(result.error || 'Có lỗi xảy ra khi điều chỉnh điểm.');
+        setError(result.error || t('adminCustomersPointsError'));
         return;
       }
 
-      setSuccess('Đã cập nhật điểm số thành công!');
+      setSuccess(t('adminCustomersPointsSuccess'));
       e.currentTarget.reset(); // Xóa sạch form
       
       // Làm mới dữ liệu trên trang chi tiết để thấy Timeline cập nhật ngay
       router.refresh();
     } catch (err) {
-      setError('Lỗi kết nối máy chủ.');
+      setError(t('adminCustomersConnectionError'));
     } finally {
       setLoading(false);
     }
@@ -57,7 +59,7 @@ export default function PointAdjustmentPanel({ customerId }: { customerId: strin
   return (
     <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow ring-1 ring-black ring-opacity-5 mt-6 border border-gray-100 dark:border-gray-700">
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">
-        Thao tác ví điểm thủ công
+        {t('adminCustomersPointsPanelTitle')}
       </h3>
 
       {error && <div className="p-3 mb-4 text-sm text-red-700 bg-red-100 rounded-md">{error}</div>}
@@ -67,40 +69,40 @@ export default function PointAdjustmentPanel({ customerId }: { customerId: strin
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {/* Loại tác vụ */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Hành động</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('adminCustomersActionField')}</label>
             <select
               name="transaction_type"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
             >
-              <option value="EARNED">Cộng điểm thưởng (+)</option>
-              <option value="REDEEMED">Trừ điểm đổi quà (-)</option>
+              <option value="EARNED">{t('adminCustomersEarnPoints')}</option>
+              <option value="REDEEMED">{t('adminCustomersRedeemPoints')}</option>
             </select>
           </div>
 
           {/* Số lượng điểm */}
           <div className="sm:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Số điểm tác động</label>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('adminCustomersPointsField')}</label>
             <input
               name="points"
               type="number"
               min="1"
               required
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
-              placeholder="Nhập số điểm (ví dụ: 50)"
+              placeholder={t('adminCustomersPointsPlaceholder')}
             />
           </div>
         </div>
 
         {/* Lý do thay đổi */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Lý do điều chỉnh *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t('adminCustomersReasonField')} *</label>
           <input
             name="reason"
             type="text"
             required
             minLength={5}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
-            placeholder="Ví dụ: Tặng điểm sinh nhật khách hàng, Đổi ly nước tại quầy..."
+            placeholder={t('adminCustomersReasonPlaceholder')}
           />
         </div>
 
@@ -110,7 +112,7 @@ export default function PointAdjustmentPanel({ customerId }: { customerId: strin
             disabled={loading}
             className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none disabled:opacity-50 w-full sm:w-auto"
           >
-            {loading ? 'Đang thực hiện...' : 'Xác nhận thay đổi'}
+            {loading ? t('adminCustomersProcessing') : t('adminCustomersConfirmAdjustment')}
           </button>
         </div>
       </form>

@@ -1,11 +1,12 @@
 "use client";
 
-import i18n from "i18next";
+import { createInstance } from "i18next";
 import { initReactI18next } from "react-i18next";
 import enCommon from "@/locales/en/common.json";
 import vnCommon from "@/locales/vn/common.json";
+import { AppLanguage, DEFAULT_LANGUAGE } from "@/lib/locale";
 
-const resources = {
+export const resources = {
   en: {
     common: enCommon,
   },
@@ -14,11 +15,13 @@ const resources = {
   },
 } as const;
 
-if (!i18n.isInitialized) {
-  i18n.use(initReactI18next).init({
+export const createI18nInstance = (language: AppLanguage) => {
+  const instance = createInstance();
+
+  instance.use(initReactI18next).init({
     resources,
-    lng: "vn",
-    fallbackLng: "vn",
+    lng: language,
+    fallbackLng: DEFAULT_LANGUAGE,
     ns: ["common"],
     defaultNS: "common",
     interpolation: {
@@ -28,6 +31,6 @@ if (!i18n.isInitialized) {
       useSuspense: false,
     },
   });
-}
 
-export default i18n;
+  return instance;
+};

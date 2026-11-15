@@ -1,4 +1,8 @@
+"use client";
+
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from '@/lib/locale';
 
 interface PointsHistoryRecord {
   id: string;
@@ -9,8 +13,19 @@ interface PointsHistoryRecord {
 }
 
 export default function LoyaltyTimeline({ history }: { history: PointsHistoryRecord[] }) {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+  const getTransactionLabel = (type: PointsHistoryRecord['transaction_type']) => {
+    const labels = {
+      EARNED: t('adminCustomersTransactionEarned'),
+      REDEEMED: t('adminCustomersTransactionRedeemed'),
+      REFUNDED: t('adminCustomersTransactionRefunded'),
+    };
+    return labels[type];
+  };
   if (!history || history.length === 0) {
-    return <p className="text-gray-500 dark:text-gray-400">Khách hàng chưa có lịch sử biến động điểm thưởng.</p>;
+    return <p className="text-gray-500 dark:text-gray-400">{t("adminCustomersNoPointHistory")}</p>;
   }
 
   return (
@@ -38,9 +53,9 @@ export default function LoyaltyTimeline({ history }: { history: PointsHistoryRec
                     <div>
                       <p className="text-sm text-gray-700 dark:text-gray-300">
                         <span className={`font-semibold mr-2 ${isEarned ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                          {isEarned ? `+${event.points_changed}` : `${event.points_changed}`} Điểm
+                          {t("adminCustomersPointsValue", { points: isEarned ? `+${event.points_changed}` : event.points_changed })}
                         </span>
-                        ({event.transaction_type})
+                        ({getTransactionLabel(event.transaction_type)})
                       </p>
                       {event.reason && (
                         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/40 p-2 rounded border border-gray-100 dark:border-gray-700 mt-2">
@@ -50,7 +65,7 @@ export default function LoyaltyTimeline({ history }: { history: PointsHistoryRec
                     </div>
                     <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
                       <time dateTime={event.created_at}>
-                        {new Date(event.created_at).toLocaleString('vi-VN')}
+                        {new Date(event.created_at).toLocaleString(formattingLocale)}
                       </time>
                     </div>
                   </div>

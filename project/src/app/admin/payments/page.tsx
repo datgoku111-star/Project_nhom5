@@ -12,6 +12,8 @@ import {
   BedDouble
 } from "lucide-react";
 import { supabaseBrowser } from "@/lib/supabase";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 interface PaymentItem {
   id: string;
@@ -31,6 +33,9 @@ interface PaymentItem {
 }
 
 export default function AdminPaymentsPage() {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
   const [payments, setPayments] = useState<PaymentItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,7 +66,7 @@ export default function AdminPaymentsPage() {
 
   // Approve payment
   const handleApprove = async (item: PaymentItem) => {
-    if (!confirm(`Xác nhận đã nhận tiền thanh toán cho đơn hàng của ${item.guest_name}?`)) return;
+    if (!confirm(t("adminPaymentsConfirmApprove", { name: item.guest_name }))) return;
 
     try {
       const res = await fetch("/api/admin/payments", {
@@ -75,16 +80,16 @@ export default function AdminPaymentsPage() {
         throw new Error(result.error || "Failed to approve payment");
       }
 
-      alert("Xác nhận thanh toán thành công!");
+      alert(t("adminPaymentsApproveSuccess"));
       fetchPayments();
     } catch (err: any) {
-      alert("Lỗi phê duyệt thanh toán: " + err.message);
+      alert(t("adminPaymentsApproveError", { message: err.message }));
     }
   };
 
   // Reject/Cancel payment
   const handleReject = async (item: PaymentItem) => {
-    if (!confirm(`Hủy bỏ và từ chối giao dịch này của ${item.guest_name}?`)) return;
+    if (!confirm(t("adminPaymentsConfirmReject", { name: item.guest_name }))) return;
 
     try {
       const res = await fetch("/api/admin/payments", {
@@ -98,10 +103,10 @@ export default function AdminPaymentsPage() {
         throw new Error(result.error || "Failed to reject payment");
       }
 
-      alert("Đã từ chối giao dịch!");
+      alert(t("adminPaymentsRejectSuccess"));
       fetchPayments();
     } catch (err: any) {
-      alert("Lỗi xử lý: " + err.message);
+      alert(t("adminPaymentsRejectError", { message: err.message }));
     }
   };
 
@@ -129,10 +134,10 @@ export default function AdminPaymentsPage() {
       <div>
         <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-2">
           <CreditCard className="w-8 h-8 text-primary-6000" />
-          Xác nhận Thanh toán Giao dịch
+          {t("adminPaymentsTitle")}
         </h1>
         <p className="text-neutral-500 mt-1 text-sm">
-          Kiểm tra tài khoản ngân hàng và đối soát nội dung chuyển khoản để phê duyệt giao dịch khách hàng quét từ PayOS VietQR.
+          {t("adminPaymentsSubtitle")}
         </p>
       </div>
 
@@ -148,7 +153,7 @@ export default function AdminPaymentsPage() {
                 : "text-neutral-500 hover:text-neutral-900 dark:hover:text-white"
             }`}
           >
-            Tất cả
+            {t("adminPaymentsTabAll")}
           </button>
           <button
             onClick={() => setActiveTab("ROOM")}
@@ -159,7 +164,7 @@ export default function AdminPaymentsPage() {
             }`}
           >
             <BedDouble className="w-3.5 h-3.5" />
-            Đặt phòng
+            {t("adminPaymentsTypeRoom")}
           </button>
           <button
             onClick={() => setActiveTab("SERVICE")}
@@ -170,7 +175,7 @@ export default function AdminPaymentsPage() {
             }`}
           >
             <ShoppingBag className="w-3.5 h-3.5" />
-            Gọi món / Dịch vụ
+            {t("adminPaymentsTypeService")}
           </button>
         </div>
 
@@ -181,7 +186,7 @@ export default function AdminPaymentsPage() {
           </span>
           <input
             type="text"
-            placeholder="Tìm theo tên khách, mã GD hoặc phòng..."
+            placeholder={t("adminPaymentsSearchPlaceholder")}
             className="block w-full pl-10 pr-4 py-2.5 text-sm rounded-xl border border-neutral-300 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 focus:outline-none focus:ring-primary-500 focus:border-primary-500 text-neutral-900 dark:text-white"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -195,26 +200,26 @@ export default function AdminPaymentsPage() {
           <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700 text-left text-sm">
             <thead className="bg-neutral-50 dark:bg-neutral-900/50 text-neutral-500 dark:text-neutral-400 text-xs font-bold uppercase tracking-wider">
               <tr>
-                <th scope="col" className="px-6 py-4">Khách Hàng</th>
-                <th scope="col" className="px-6 py-4">Loại GD</th>
-                <th scope="col" className="px-6 py-4">Nội Dung CK / Mã GD</th>
-                <th scope="col" className="px-6 py-4">Số Tiền (VND)</th>
-                <th scope="col" className="px-6 py-4">Chi Tiết Giao Dịch</th>
-                <th scope="col" className="px-6 py-4">Trạng Thái</th>
-                <th scope="col" className="px-6 py-4 text-right">Phê Duyệt</th>
+                <th scope="col" className="px-6 py-4">{t("adminPaymentsColumnCustomer")}</th>
+                <th scope="col" className="px-6 py-4">{t("adminPaymentsColumnType")}</th>
+                <th scope="col" className="px-6 py-4">{t("adminPaymentsColumnReference")}</th>
+                <th scope="col" className="px-6 py-4">{t("adminPaymentsColumnAmount")}</th>
+                <th scope="col" className="px-6 py-4">{t("adminPaymentsColumnDetails")}</th>
+                <th scope="col" className="px-6 py-4">{t("adminPaymentsColumnStatus")}</th>
+                <th scope="col" className="px-6 py-4 text-right">{t("adminPaymentsColumnApproval")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
               {loading ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-neutral-500 dark:text-neutral-400 font-semibold">
-                    Đang tải dữ liệu giao dịch...
+                    {t("adminPaymentsLoading")}
                   </td>
                 </tr>
               ) : filteredPayments.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="text-center py-12 text-neutral-500 dark:text-neutral-400 font-medium">
-                    Không tìm thấy giao dịch thanh toán nào phù hợp.
+                    {t("adminPaymentsEmpty")}
                   </td>
                 </tr>
               ) : (
@@ -238,12 +243,12 @@ export default function AdminPaymentsPage() {
                         {p.type === "service" ? (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300">
                             <ShoppingBag className="w-3.5 h-3.5" />
-                            Đồ ăn / Dịch vụ
+                            {t("adminPaymentsTypeService")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-purple-50 text-purple-700 dark:bg-purple-900/20 dark:text-purple-300">
                             <BedDouble className="w-3.5 h-3.5" />
-                            Đặt phòng
+                            {t("adminPaymentsTypeRoom")}
                           </span>
                         )}
                       </td>
@@ -253,11 +258,11 @@ export default function AdminPaymentsPage() {
                           Pay {p.details.split(" ")[1]?.slice(0, 15) || p.roomName?.slice(0, 15) || "Service"}
                         </div>
                         <div className="text-xs text-neutral-400 font-normal font-sans">
-                          Mã orderCode: {p.transaction_ref.split("_")[0]}
+                          {t("adminPaymentsOrderCode")}: {p.transaction_ref.split("_")[0]}
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap font-extrabold text-secondary-6000 text-base">
-                        {new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(amountVnd)}
+                        {new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND" }).format(amountVnd)}
                       </td>
                       <td className="px-6 py-4 max-w-xs truncate text-neutral-600 dark:text-neutral-300 font-medium">
                         {p.details}
@@ -266,17 +271,17 @@ export default function AdminPaymentsPage() {
                         {p.status === "COMPLETED" ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">
                             <Check className="w-3.5 h-3.5 mr-1" />
-                            Đã duyệt
+                            {t("adminPaymentsStatusCompleted")}
                           </span>
                         ) : p.status === "REFUNDED" ? (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300">
                             <X className="w-3.5 h-3.5 mr-1" />
-                            Đã từ chối
+                            {t("adminPaymentsStatusRejected")}
                           </span>
                         ) : (
                           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300">
                             <Clock className="w-3.5 h-3.5 mr-1 text-yellow-600 dark:text-yellow-400" />
-                            Chờ đối soát
+                            {t("adminPaymentsStatusPending")}
                           </span>
                         )}
                       </td>
@@ -287,20 +292,20 @@ export default function AdminPaymentsPage() {
                               <button
                                 onClick={() => handleApprove(p)}
                                 className="px-3 py-1.5 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors shadow-sm"
-                                title="Xác nhận nhận tiền thành công"
+                                title={t("adminPaymentsApproveTitle")}
                               >
-                                Xác nhận
+                                {t("adminPaymentsApprove")}
                               </button>
                               <button
                                 onClick={() => handleReject(p)}
                                 className="px-3 py-1.5 text-xs font-bold bg-red-50 text-red-700 hover:bg-red-100 rounded-lg transition-colors"
-                                title="Hủy / Từ chối giao dịch"
+                                title={t("adminPaymentsRejectTitle")}
                               >
-                                Từ chối
+                                {t("adminPaymentsReject")}
                               </button>
                             </>
                           ) : (
-                            <span className="text-xs text-neutral-400 font-semibold italic">Đã xử lý</span>
+                            <span className="text-xs text-neutral-400 font-semibold italic">{t("adminPaymentsProcessed")}</span>
                           )}
                         </div>
                       </td>

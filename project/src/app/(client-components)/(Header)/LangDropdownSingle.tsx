@@ -5,7 +5,6 @@ import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import { GlobeAltIcon } from "@heroicons/react/24/outline";
 import { FC, Fragment } from "react";
 import { useTranslation } from "react-i18next";
-import i18n from "@/lib/i18n";
 
 export const headerLanguage = [
   {
@@ -24,7 +23,7 @@ interface LangDropdownProps {
 const LangDropdown: FC<LangDropdownProps> = ({
   panelClassName = "z-10 w-screen max-w-[280px] px-4 mt-4 right-0 sm:px-0",
 }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
 
   return (
     <div className="LangDropdown">

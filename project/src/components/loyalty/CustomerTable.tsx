@@ -1,4 +1,8 @@
+"use client";
+
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from '@/lib/locale';
 import { CustomerProfile } from '@/types/customer-loyalty';
 import { Route } from '@/routers/types';
 
@@ -7,10 +11,14 @@ interface CustomerTableProps {
 }
 
 export default function CustomerTable({ customers }: CustomerTableProps) {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+  const getMembershipLabel = (level: string) => t(`adminCustomersMembership${level}`, { defaultValue: level });
   if (!customers || customers.length === 0) {
     return (
       <div className="p-8 text-center bg-white rounded-lg border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
-        <p className="text-gray-500 dark:text-gray-400">Chưa có dữ liệu tài khoản khách hàng.</p>
+        <p className="text-gray-500 dark:text-gray-400">{t("adminCustomersEmpty")}</p>
       </div>
     );
   }
@@ -34,13 +42,13 @@ export default function CustomerTable({ customers }: CustomerTableProps) {
       <table className="min-w-full divide-y divide-gray-300 dark:divide-gray-700">
         <thead className="bg-gray-50 dark:bg-gray-900/50">
           <tr>
-            <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 sm:pl-6">Tên khách hàng</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Liên hệ</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Hạng</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Điểm hiện tại</th>
-            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">Tổng chi tiêu</th>
+            <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 dark:text-gray-100 sm:pl-6">{t("adminCustomersColumnName")}</th>
+            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">{t("adminCustomersColumnContact")}</th>
+            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">{t("adminCustomersColumnTier")}</th>
+            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">{t("adminCustomersColumnPoints")}</th>
+            <th scope="col" className="px-3 py-3.5 text-left text-sm font-semibold text-gray-900 dark:text-gray-100">{t("adminCustomersColumnSpent")}</th>
             <th scope="col" className="relative py-3.5 pl-3 pr-4 sm:pr-6">
-              <span className="sr-only">Thao tác</span>
+              <span className="sr-only">{t("adminCustomersColumnActions")}</span>
             </th>
           </tr>
         </thead>
@@ -56,18 +64,18 @@ export default function CustomerTable({ customers }: CustomerTableProps) {
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm">
                 <span className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ring-1 ring-inset ${getLevelBadge(customer.membership_level)}`}>
-                  {customer.membership_level}
+                  {getMembershipLabel(customer.membership_level)}
                 </span>
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-indigo-600 dark:text-indigo-400 font-semibold">
                 {customer.current_points} P
               </td>
               <td className="whitespace-nowrap px-3 py-4 text-sm text-gray-500 dark:text-gray-300">
-                {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(customer.total_spent)}
+                {new Intl.NumberFormat(formattingLocale, { style: 'currency', currency: 'VND' }).format(customer.total_spent)}
               </td>
               <td className="relative whitespace-nowrap py-4 pl-3 pr-4 text-right text-sm font-medium sm:pr-6">
                 <a href={`/admin/customers/${customer.id}` as Route} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300">
-                  Xem chi tiết
+                  {t("adminCustomersViewDetails")}
                 </a>
               </td>
             </tr>

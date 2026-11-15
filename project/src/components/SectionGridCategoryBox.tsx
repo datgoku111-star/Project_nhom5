@@ -1,7 +1,10 @@
+"use client";
+
 import CardCategoryBox1 from "@/components/CardCategoryBox1";
 import Heading from "@/shared/Heading";
 import { TaxonomyType } from "@/data/types";
 import React from "react";
+import { useTranslation } from "react-i18next";
 
 export interface SectionGridCategoryBoxProps {
   categories?: TaxonomyType[];
@@ -93,6 +96,7 @@ const SectionGridCategoryBox: React.FC<SectionGridCategoryBoxProps> = ({
   className = "",
   gridClassName = "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4",
 }) => {
+  const { t } = useTranslation();
   let CardComponentName = CardCategoryBox1;
   switch (categoryCardType) {
     case "card1":
@@ -106,10 +110,10 @@ const SectionGridCategoryBox: React.FC<SectionGridCategoryBoxProps> = ({
   return (
     <div className={`nc-SectionGridCategoryBox relative ${className}`}>
       <Heading
-        desc="Discover great places near where you live"
+        desc={t("homeNearbySubHeading")}
         isCenter={headingCenter}
       >
-        Explore nearby
+        {t("homeNearbyHeading")}
       </Heading>
       <div className={`grid ${gridClassName} gap-5 sm:gap-6 md:gap-8`}>
         {categories.map((item, i) => (

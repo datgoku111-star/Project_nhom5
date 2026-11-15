@@ -8,6 +8,7 @@ import { Fragment } from "react";
 import NcInputNumber from "@/components/NcInputNumber";
 import FlightDateRangeInput from "./FlightDateRangeInput";
 import { GuestsObject } from "../../type";
+import { useTranslation } from "react-i18next";
 
 export interface FlightSearchFormProps {}
 
@@ -29,6 +30,7 @@ const flightClass = [
 export type TypeDropOffLocationType = "roundTrip" | "oneWay" | "";
 
 const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
+  const { t } = useTranslation();
   const [dropOffLocationType, setDropOffLocationType] =
     useState<TypeDropOffLocationType>("roundTrip");
   const [flightClassState, setFlightClassState] = useState("Economy");
@@ -59,6 +61,11 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
 
   const totalGuests =
     guestChildrenInputValue + guestAdultsInputValue + guestInfantsInputValue;
+  const flightClassLabels: Record<string, string> = {
+    Economy: t("homeSearchFlightEconomy"),
+    Business: t("homeSearchFlightBusiness"),
+    Multiple: t("homeSearchFlightMultiple"),
+  };
 
   const renderGuest = () => {
     return (
@@ -71,7 +78,7 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
            ${open ? "" : ""}
             px-4 py-1.5 rounded-md inline-flex items-center font-medium hover:text-opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 text-xs`}
             >
-              <span>{`${totalGuests || ""} Guests`}</span>
+              <span>{t("homeSearchGuestsCount", { count: totalGuests })}</span>
               <ChevronDownIcon
                 className={`${
                   open ? "" : "text-opacity-70"
@@ -95,16 +102,16 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
                   onChange={(value) => handleChangeData(value, "guestAdults")}
                   max={10}
                   min={1}
-                  label="Adults"
-                  desc="Ages 13 or above"
+                  label={t("homeSearchAdults")}
+                  desc={t("homeSearchAdultsDesc")}
                 />
                 <NcInputNumber
                   className="w-full mt-6"
                   defaultValue={guestChildrenInputValue}
                   onChange={(value) => handleChangeData(value, "guestChildren")}
                   max={4}
-                  label="Children"
-                  desc="Ages 2–12"
+                  label={t("homeSearchChildren")}
+                  desc={t("homeSearchChildrenDesc")}
                 />
 
                 <NcInputNumber
@@ -112,8 +119,8 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
                   defaultValue={guestInfantsInputValue}
                   onChange={(value) => handleChangeData(value, "guestInfants")}
                   max={4}
-                  label="Infants"
-                  desc="Ages 0–2"
+                  label={t("homeSearchInfants")}
+                  desc={t("homeSearchInfantsDesc")}
                 />
               </Popover.Panel>
             </Transition>
@@ -133,7 +140,7 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
            ${open ? "" : ""}
             px-4 py-1.5 rounded-md inline-flex items-center font-medium hover:text-opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-opacity-75 text-xs`}
             >
-              <span>{`${flightClassState}`}</span>
+              <span>{flightClassLabels[flightClassState] || flightClassState}</span>
               <ChevronDownIcon
                 className={`${
                   open ? "" : "text-opacity-70"
@@ -164,7 +171,7 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
                         }}
                         className="flex items-center p-2 -m-3 transition duration-150 ease-in-out rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus-visible:ring focus-visible:ring-orange-500 focus-visible:ring-opacity-50"
                       >
-                        <p className="text-sm font-medium ">{item.name}</p>
+                        <p className="text-sm font-medium ">{flightClassLabels[item.name] || item.name}</p>
                       </a>
                     ))}
                   </div>
@@ -188,7 +195,7 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
           }`}
           onClick={(e) => setDropOffLocationType("roundTrip")}
         >
-          Round-trip
+          {t("homeSearchRoundTrip")}
         </div>
         <div
           className={`py-1.5 px-4 flex items-center rounded-full font-medium text-xs cursor-pointer mr-2 my-1 sm:mr-3 ${
@@ -198,7 +205,7 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
           }`}
           onClick={(e) => setDropOffLocationType("oneWay")}
         >
-          One-way
+          {t("homeSearchOneWay")}
         </div>
 
         <div className="self-center border-r border-slate-200 dark:border-slate-700 h-8 mr-2 my-1 sm:mr-3"></div>
@@ -219,14 +226,14 @@ const FlightSearchForm: FC<FlightSearchFormProps> = ({}) => {
         {renderRadioBtn()}
         <div className="flex flex-1 rounded-full">
           <LocationInput
-            placeHolder="Flying from"
-            desc="Where do you want to fly from?"
+            placeHolder={t("homeSearchFlyingFrom")}
+            desc={t("homeSearchFlyingFromPrompt")}
             className="flex-1"
           />
           <div className="self-center border-r border-slate-200 dark:border-slate-700 h-8"></div>
           <LocationInput
-            placeHolder="Flying to"
-            desc="Where you want to fly to?"
+            placeHolder={t("homeSearchFlyingTo")}
+            desc={t("homeSearchFlyingToPrompt")}
             className="flex-1"
             divHideVerticalLineClass=" -inset-x-0.5"
           />

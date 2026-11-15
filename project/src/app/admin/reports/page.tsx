@@ -4,9 +4,12 @@ import React, { useState, useEffect } from "react";
 import { Download } from "lucide-react";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export default function AdminReportsPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -57,7 +60,7 @@ export default function AdminReportsPage() {
               {t("adminReportsTodayRevenue")}
             </p>
             <p className="text-2xl font-bold text-green-600">
-              {new Intl.NumberFormat("vi-VN", {
+              {new Intl.NumberFormat(formattingLocale, {
                 style: "currency",
                 currency: "VND",
               }).format(stats.revenue_today)}

@@ -9,6 +9,8 @@ import DatePickerCustomHeaderTwoMonth from "@/components/DatePickerCustomHeaderT
 import DatePickerCustomDay from "@/components/DatePickerCustomDay";
 import ClearDataButton from "../ClearDataButton";
 import ButtonSubmit from "../ButtonSubmit";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export interface FlightDateRangeInputProps {
   className?: string;
@@ -23,6 +25,11 @@ const FlightDateRangeInput: FC<FlightDateRangeInputProps> = ({
   hasButtonSubmit = true,
   selectsRange = true,
 }) => {
+  const { t, i18n } = useTranslation();
+  const activeLanguage = isAppLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(activeLanguage);
   const [startDate, setStartDate] = useState<Date | null>(
     new Date()
   );
@@ -42,20 +49,20 @@ const FlightDateRangeInput: FC<FlightDateRangeInputProps> = ({
         </div>
         <div className="flex-grow text-left">
           <span className="block xl:text-lg font-semibold">
-            {startDate?.toLocaleDateString("en-US", {
+            {startDate?.toLocaleDateString(formattingLocale, {
               month: "short",
               day: "2-digit",
-            }) || "Add dates"}
+            }) || t("homeSearchAddDates")}
             {selectsRange && endDate
               ? " - " +
-                endDate?.toLocaleDateString("en-US", {
+                endDate?.toLocaleDateString(formattingLocale, {
                   month: "short",
                   day: "2-digit",
                 })
               : ""}
           </span>
           <span className="block mt-1 text-sm text-neutral-400 leading-none font-light">
-            {selectsRange ? "Pick up - Drop off" : "Pick up date"}
+            {selectsRange ? t("homeSearchPickupDropOff") : t("homeSearchPickupDate")}
           </span>
         </div>
       </>

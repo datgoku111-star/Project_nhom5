@@ -279,7 +279,7 @@ const CheckOutPagePageMain: FC<CheckOutPagePageMainProps> = ({
         activeRoomId = targetRoom.id;
       } catch (err: any) {
         console.error("Locking failed on checkout load:", err);
-        setError(err.message || "An error occurred while temporarily locking the room. Vui lòng thử lại!");
+        setError(err.message || t("checkoutRoomLockError"));
         alert(err.message || "An error occurred while temporarily locking the room.");
         router.back();
       }
@@ -545,7 +545,11 @@ const CheckOutPagePageMain: FC<CheckOutPagePageMainProps> = ({
           </div>
           {typeParam !== "service" && (
             <div className="flex justify-between font-bold text-primary-6000 mt-2">
-              <span>{isExperience ? "Đặt cọc trải nghiệm (10%)" : t("checkoutDeposit") || "Deposit Payment (10%)"}</span>
+              <span>
+                {isExperience
+                  ? t("checkoutExperienceDeposit")
+                  : t("checkoutDeposit")}
+              </span>
               <span>
                 {formatPrice(depositAmount, "USD")}
               </span>
@@ -568,7 +572,7 @@ const CheckOutPagePageMain: FC<CheckOutPagePageMainProps> = ({
               <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
-              Đang giữ phòng tạm thời cho bạn
+              {t("checkoutRoomHoldMessage")}
             </span>
             <span className="font-mono text-base font-bold bg-orange-200 dark:bg-orange-900/60 px-3 py-1 rounded-lg">
               {Math.floor(timeLeft / 60)}:{(timeLeft % 60).toString().padStart(2, '0')}
@@ -836,7 +840,7 @@ const CheckOutPagePageMain: FC<CheckOutPagePageMainProps> = ({
                         }}
                         className="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-medium text-center rounded-xl transition-all shadow-md text-sm"
                       >
-                        {t("checkoutAlreadyPaid") || "Already paid"}
+                        {t("checkoutAlreadyPaid")}
                       </button>
                      <button
                        type="button"

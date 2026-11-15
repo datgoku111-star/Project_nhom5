@@ -9,17 +9,23 @@ import {
   DEMO_EXPERIENCES_LISTINGS,
   DEMO_STAY_LISTINGS,
 } from "@/data/listings";
-import React, { Fragment, useState } from "react";
+import React, { Fragment } from "react";
 import ButtonSecondary from "@/shared/ButtonSecondary";
+import { useTranslation } from "react-i18next";
 
 const AccountSavelists = () => {
-  let [categories] = useState(["Stays", "Experiences", "Cars"]);
+  const { t } = useTranslation();
+  const categories = [
+    t("wishlistStays"),
+    t("wishlistExperiences"),
+    t("wishlistCars"),
+  ];
 
   const renderSection1 = () => {
     return (
       <div className="space-y-6 sm:space-y-8">
         <div>
-          <h2 className="text-3xl font-semibold">Save lists</h2>
+          <h2 className="text-3xl font-semibold">{t("wishlistTitle")}</h2>
         </div>
         <div className="w-14 border-b border-neutral-200 dark:border-neutral-700"></div>
 
@@ -50,7 +56,7 @@ const AccountSavelists = () => {
                   ))}
                 </div>
                 <div className="flex mt-11 justify-center items-center">
-                  <ButtonSecondary>Show me more</ButtonSecondary>
+                  <ButtonSecondary>{t("showMore")}</ButtonSecondary>
                 </div>
               </Tab.Panel>
               <Tab.Panel className="mt-8">
@@ -62,7 +68,7 @@ const AccountSavelists = () => {
                   )}
                 </div>
                 <div className="flex mt-11 justify-center items-center">
-                  <ButtonSecondary>Show me more</ButtonSecondary>
+                  <ButtonSecondary>{t("showMore")}</ButtonSecondary>
                 </div>
               </Tab.Panel>
               <Tab.Panel className="mt-8">
@@ -72,7 +78,7 @@ const AccountSavelists = () => {
                   ))}
                 </div>
                 <div className="flex mt-11 justify-center items-center">
-                  <ButtonSecondary>Show me more</ButtonSecondary>
+                  <ButtonSecondary>{t("showMore")}</ButtonSecondary>
                 </div>
               </Tab.Panel>
             </Tab.Panels>

@@ -27,8 +27,11 @@ import {
 } from "lucide-react";
 
 import DashboardLayout from "../dashboard/layout";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 function CheckInContent() {
+  const { t, i18n } = useTranslation();
   const { user, isLoading } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -163,11 +166,11 @@ function CheckInContent() {
         url += `&status=CONFIRMED`;
       }
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to search bookings");
+      if (!res.ok) throw new Error(t("checkinSearchFailed"));
       const data = await res.json();
       setSearchResults(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      setError(err.message || "Error occurred while searching");
+      setError(err.message || t("checkinSearchError"));
     } finally {
       setIsSearching(false);
     }
@@ -182,7 +185,7 @@ function CheckInContent() {
     setError("");
     setSuccess("");
     if (["CANCELLED", "CHECKED_OUT"].includes(selected.status)) {
-      setError(`Cannot process: Selected booking is currently ${selected.status}.`);
+      setError(t("checkinCannotProcessStatus", { status: selected.status }));
       return;
     }
     setBooking(selected);
@@ -235,18 +238,19 @@ function CheckInContent() {
   const formatMoney = (val: number) => {
     const numericVal = typeof val === 'number' ? val : parseFloat(val as any) || 0;
     const vndVal = numericVal < 1000 ? numericVal * 25000 : numericVal;
-    return new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(Math.round(vndVal));
+    const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+    return new Intl.NumberFormat(toFormattingLocale(language), { style: "currency", currency: "VND" }).format(Math.round(vndVal));
   };
 
   // Action 1: Confirm Check-In
   const confirmCheckIn = async () => {
     if (!booking) return;
     if (!guestForm.full_name || !guestForm.id_card_number) {
-      setError("Vui lòng nhập đầy đủ Họ và tên và Số CCCD/Hộ chiếu của khách hàng!");
+      setError(t("checkinGuestIdentityRequired"));
       return;
     }
     if (guestForm.id_card_number.length < 12) {
-      setError("Số ID Card (CCCD/CMND) phải chứa tối thiểu 12 số!");
+      setError(t("checkinIdMinimumLength"));
       return;
     }
     setActionLoading(true);
@@ -264,10 +268,10 @@ function CheckInContent() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Check-in failed");
+        throw new Error(data.error || t("checkinFailed"));
       }
 
-      setSuccess(`✅ Check-in successful! Room ${booking.room?.room_number} (${booking.room?.room_type?.name}) is now IN_USE.`);
+      setSuccess(t("checkinSuccess", { room: booking.room?.room_number, type: booking.room?.room_type?.name }));
       setTimeout(() => {
         setBooking(null);
         setSuccess("");
@@ -298,13 +302,13 @@ function CheckInContent() {
           }),
         });
         const payOSData = await payOSRes.json();
-        if (!payOSRes.ok) throw new Error(payOSData.error || "Lỗi tạo mã PayOS");
+        if (!payOSRes.ok) throw new Error(payOSData.error || t("checkinPayOSCreateError"));
         
         setPayosQRUrl(payOSData.qrCode);
         setPayosOrderCode(payOSData.orderCode);
         setShowQR(true);
       } catch (err: any) {
-        setError(err.message || "Không thể tạo mã VietQR từ PayOS");
+        setError(err.message || t("checkinVietQRCreateError"));
       } finally {
         setActionLoading(false);
       }
@@ -320,12 +324,12 @@ function CheckInContent() {
     setSuccess("");
     try {
       if (paymentMethod === "BANK_TRANSFER") {
-        if (!payosOrderCode) throw new Error("Vui lòng tạo mã QR trước khi thanh toán.");
+        if (!payosOrderCode) throw new Error(t("checkinCreateQRFirst"));
         const checkRes = await fetch(`/api/payment/check/${payosOrderCode}`);
         const checkData = await checkRes.json();
-        if (!checkRes.ok) throw new Error(checkData.error || "Lỗi kiểm tra trạng thái thanh toán.");
+        if (!checkRes.ok) throw new Error(checkData.error || t("checkinPaymentStatusError"));
         if (checkData.status !== "PAID") {
-          throw new Error("Khách hàng chưa thanh toán thành công qua mã QR. Vui lòng kiểm tra lại!");
+          throw new Error(t("checkinPaymentNotCompleted"));
         }
       }
 
@@ -341,10 +345,10 @@ function CheckInContent() {
 
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Check-out failed");
+        throw new Error(data.error || t("checkinCheckoutFailed"));
       }
 
-      setSuccess(`💳 Check-out & billing completed successfully! Room ${booking.room?.room_number} is now marked as DIRTY for Housekeeping.`);
+      setSuccess(t("checkinCheckoutSuccess", { room: booking.room?.room_number }));
       setTimeout(() => {
         setBooking(null);
         setSuccess("");
@@ -360,15 +364,15 @@ function CheckInContent() {
   // Action 3: Process Instant Walk-In Check-In
   const confirmWalkInCheckIn = async () => {
     if (!selectedRoom) {
-      setError("Please select an available room first.");
+      setError(t("checkinSelectAvailableRoom"));
       return;
     }
     if (!guestForm.full_name || !guestForm.id_card_number) {
-      setError("Vui lòng nhập đầy đủ Họ và tên và Số CCCD/Hộ chiếu của khách hàng!");
+      setError(t("checkinGuestIdentityRequired"));
       return;
     }
     if (guestForm.id_card_number.length < 12) {
-      setError("Số ID Card (CCCD/CMND) phải chứa tối thiểu 12 số!");
+      setError(t("checkinIdMinimumLength"));
       return;
     }
 
@@ -396,7 +400,7 @@ function CheckInContent() {
 
       if (!bookRes.ok) {
         const bookData = await bookRes.json();
-        throw new Error(bookData.error || "Failed to create walk-in booking");
+        throw new Error(bookData.error || t("checkinWalkInCreateFailed"));
       }
       const newBooking = await bookRes.json();
 
@@ -412,10 +416,10 @@ function CheckInContent() {
 
       if (!checkinRes.ok) {
         const checkinData = await checkinRes.json();
-        throw new Error(checkinData.error || "Booking created but check-in step failed");
+        throw new Error(checkinData.error || t("checkinWalkInStepFailed"));
       }
 
-      setSuccess(`🚀 Walk-in Check-in Successful! Room ${selectedRoom.room_number} assigned to ${guestForm.full_name}. Room is now IN_USE.`);
+      setSuccess(t("checkinWalkInSuccess", { room: selectedRoom.room_number, guest: guestForm.full_name }));
       setTimeout(() => {
         setSelectedRoom(null);
         setGuestForm({
@@ -468,7 +472,7 @@ function CheckInContent() {
     });
   };
 
-  if (isLoading) return <div className="container py-20 text-center">Loading...</div>;
+  if (isLoading) return <div className="container py-20 text-center">{t("checkinLoading")}</div>;
 
   return (
     <div className="container py-10 mb-24 lg:mb-32 space-y-8">
@@ -476,10 +480,10 @@ function CheckInContent() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-neutral-200 dark:border-neutral-700 pb-6">
         <div>
           <h1 className="text-3xl font-extrabold sm:text-4xl text-neutral-900 dark:text-white flex items-center gap-3">
-            <span>Front Desk Check-In & Check-Out Portal</span>
+            <span>{t("checkinPortalTitle")}</span>
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm">
-            Verify guest identity, confirm arriving reservations, handle departure billing, and process instant walk-ins.
+            {t("checkinPortalSubtitle")}
           </p>
         </div>
 
@@ -494,7 +498,7 @@ function CheckInContent() {
             }`}
           >
             <LogIn className="w-4 h-4" />
-            <span>Check-In Desk</span>
+            <span>{t("checkinDeskTab")}</span>
           </button>
 
           <button
@@ -506,7 +510,7 @@ function CheckInContent() {
             }`}
           >
             <LogOut className="w-4 h-4" />
-            <span>Check-Out & Billing</span>
+            <span>{t("checkinCheckoutBillingTab")}</span>
           </button>
 
           <button
@@ -518,7 +522,7 @@ function CheckInContent() {
             }`}
           >
             <PlusCircle className="w-4 h-4" />
-            <span>Walk-In Booking</span>
+            <span>{t("checkinWalkInTab")}</span>
           </button>
 
           <button
@@ -530,7 +534,7 @@ function CheckInContent() {
             }`}
           >
             <Utensils className="w-4 h-4" />
-            <span>Phục Vụ & Dịch Vụ</span>
+            <span>{t("checkinServicesTab")}</span>
           </button>
         </div>
       </div>
@@ -558,21 +562,21 @@ function CheckInContent() {
           {activeTab !== "walkin" ? (
             <div className="p-6 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm">
               <h3 className="text-lg font-bold mb-4 flex items-center justify-between text-neutral-900 dark:text-white">
-                <span>Step 1: Search & Select {activeTab === "checkout" ? "Checked-In Room" : "Reservation"}</span>
+                <span>{t("checkinStepSearchSelect", { target: activeTab === "checkout" ? t("checkinCheckedInRoom") : t("checkinReservation") })}</span>
                 <button
                   type="button"
                   onClick={() => handleSearchQuery(searchKeyword)}
                   className="text-xs text-primary-6000 hover:text-primary-700 flex items-center gap-1 font-semibold"
                 >
                   <RefreshCw className={`w-3.5 h-3.5 ${isSearching ? "animate-spin" : ""}`} />
-                  <span>Refresh</span>
+                  <span>{t("receptionistRefresh")}</span>
                 </button>
               </h3>
 
               <form onSubmit={handleSearchSubmit} className="flex gap-3 mb-6">
                 <div className="relative flex-grow">
                   <Input
-                    placeholder="Search by Guest Name, Booking ID, or Room No..."
+                    placeholder={t("checkinSearchPlaceholder")}
                     value={searchKeyword}
                     onChange={(e) => setSearchKeyword(e.target.value)}
                     className="w-full pl-10 h-11 rounded-2xl"
@@ -580,18 +584,18 @@ function CheckInContent() {
                   <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
                 </div>
                 <ButtonPrimary type="submit" disabled={isSearching} className="px-5 h-11 rounded-2xl text-sm font-bold">
-                  Search
+                  {t("bookingsSearch")}
                 </ButtonPrimary>
               </form>
 
               <div className="space-y-3 max-h-[520px] overflow-y-auto pr-1">
                 {isSearching && (
-                  <div className="py-12 text-center text-neutral-500 text-sm">Searching bookings...</div>
+                  <div className="py-12 text-center text-neutral-500 text-sm">{t("checkinSearching")}</div>
                 )}
 
                 {!isSearching && searchResults.length === 0 && (
                   <div className="py-12 text-center text-neutral-400 text-sm border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                    No matching {activeTab === "checkout" ? "CHECKED_IN" : "arriving"} reservations found.
+                    {t("checkinNoMatchingReservations", { type: activeTab === "checkout" ? t("bookingsStatusCheckedIn") : t("checkinArriving") })}
                   </div>
                 )}
 
@@ -618,17 +622,17 @@ function CheckInContent() {
                         <div className="space-y-1.5 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-extrabold text-sm text-neutral-900 dark:text-white">
-                              Room {item.room?.room_number} ({item.room?.room_type?.name})
+                              {t("bookingsRoomNumber", { number: item.room?.room_number })} ({item.room?.room_type?.name})
                             </span>
                             <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${getStatusBadge(item.status)}`}>
-                              {item.status}
+                              {t(`bookingsStatus${item.status === "CHECKED_IN" ? "CheckedIn" : item.status === "CHECKED_OUT" ? "CheckedOut" : item.status.charAt(0) + item.status.slice(1).toLowerCase()}`, { defaultValue: item.status })}
                             </span>
                           </div>
 
                           <div className="text-xs text-neutral-700 dark:text-neutral-300 flex items-center gap-3">
                             <span className="flex items-center gap-1 font-semibold truncate">
                               <User className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
-                              {item.user?.full_name || item.guest?.full_name || "Unknown Guest"}
+                              {item.user?.full_name || item.guest?.full_name || t("checkinUnknownGuest")}
                             </span>
                             {item.user?.phone && (
                               <span className="flex items-center gap-1 text-neutral-500 font-mono">
@@ -650,7 +654,7 @@ function CheckInContent() {
                         <div className="flex-shrink-0 self-end sm:self-center">
                           {isSelected ? (
                             <span className="px-3 py-1 rounded-xl bg-primary-6000 text-white text-xs font-bold shadow-sm">
-                              Selected
+                              {t("checkinSelected")}
                             </span>
                           ) : (
                             <span
@@ -660,7 +664,7 @@ function CheckInContent() {
                                   : "bg-neutral-100 hover:bg-neutral-200 text-neutral-800 dark:bg-neutral-700 dark:text-neutral-200"
                               }`}
                             >
-                              {isInvalid ? "Wrong Status" : "Select"}
+                              {isInvalid ? t("checkinWrongStatus") : t("checkinSelect")}
                             </span>
                           )}
                         </div>
@@ -673,19 +677,19 @@ function CheckInContent() {
             /* Walk-In Room Selection Step 1 */
             <div className="p-6 rounded-3xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-sm space-y-5">
               <h3 className="text-lg font-bold flex items-center justify-between text-neutral-900 dark:text-white">
-                <span>Step 1: Pick Dates & Vacant Room</span>
+                <span>{t("checkinStepPickDatesRoom")}</span>
                 <button
                   type="button"
                   onClick={fetchAvailableRoomsForWalkIn}
                   className="text-xs text-green-600 hover:text-green-700 flex items-center gap-1 font-semibold"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" /> Refresh Rooms
+                  <RefreshCw className="w-3.5 h-3.5" /> {t("checkinRefreshRooms")}
                 </button>
               </h3>
 
               <div className="grid grid-cols-2 gap-3 bg-neutral-50 dark:bg-neutral-800/50 p-4 rounded-2xl border border-neutral-200 dark:border-neutral-700">
                 <div>
-                  <label className="block text-xs font-bold text-neutral-500 uppercase mb-1">Check-In</label>
+                  <label className="block text-xs font-bold text-neutral-500 uppercase mb-1">{t("bookingsCheckIn")}</label>
                   <Input
                     type="date"
                     value={walkInDates.check_in}
@@ -696,7 +700,7 @@ function CheckInContent() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-neutral-500 uppercase mb-1">Check-Out</label>
+                  <label className="block text-xs font-bold text-neutral-500 uppercase mb-1">{t("receptionistCheckOut")}</label>
                   <Input
                     type="date"
                     value={walkInDates.check_out}
@@ -711,7 +715,7 @@ function CheckInContent() {
               <div className="space-y-3 max-h-[420px] overflow-y-auto pr-1">
                 {availableRooms.length === 0 ? (
                   <div className="py-10 text-center text-neutral-400 text-sm border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                    No vacant rooms found for the selected dates.
+                    {t("checkinNoVacantRooms")}
                   </div>
                 ) : (
                   availableRooms.map((room) => {
@@ -729,14 +733,14 @@ function CheckInContent() {
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="font-extrabold text-base text-neutral-900 dark:text-white">
-                              Room {room.room_number}
+                              {t("bookingsRoomNumber", { number: room.room_number })}
                             </span>
                             <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
-                              Vacant
+                              {t("checkinVacant")}
                             </span>
                           </div>
                           <div className="text-xs font-semibold text-neutral-600 dark:text-neutral-300 mt-0.5">
-                            {room.room_type?.name} &bull; Floor {room.floor}
+                            {room.room_type?.name} &bull; {t("adminRoomsFloorValue", { floor: room.floor })}
                           </div>
                         </div>
 
@@ -744,7 +748,7 @@ function CheckInContent() {
                           <div className="text-sm font-extrabold text-neutral-900 dark:text-white">
                             {formatMoney(room.room_type?.base_price || (room.room_type as any)?.base_price_per_night || 0)}
                           </div>
-                          <div className="text-[10px] text-neutral-400">per night</div>
+                          <div className="text-[10px] text-neutral-400">{t("listingPerNight")}</div>
                         </div>
                       </div>
                     );
@@ -766,50 +770,50 @@ function CheckInContent() {
               <div className="flex items-start justify-between pb-5 border-b border-neutral-700/80 mb-5">
                 <div>
                   <span className="text-xs font-bold uppercase tracking-wider text-primary-400">
-                    {activeTab === "checkout" ? "Departure Settlement Record" : "Reservation Verification Card"}
+                    {activeTab === "checkout" ? t("checkinDepartureRecord") : t("checkinVerificationCard")}
                   </span>
-                  <h4 className="text-3xl font-extrabold mt-1">Room {booking.room?.room_number}</h4>
+                  <h4 className="text-3xl font-extrabold mt-1">{t("bookingsRoomNumber", { number: booking.room?.room_number })}</h4>
                   <p className="text-sm text-neutral-300 font-medium">{booking.room?.room_type?.name}</p>
                 </div>
                 <span className={`px-3 py-1 rounded-xl text-xs font-bold ${getStatusBadge(booking.status)}`}>
-                  {booking.status}
+                  {t(`bookingsStatus${booking.status === "CHECKED_IN" ? "CheckedIn" : booking.status === "CHECKED_OUT" ? "CheckedOut" : booking.status.charAt(0) + booking.status.slice(1).toLowerCase()}`, { defaultValue: booking.status })}
                 </span>
               </div>
 
               <div className="grid grid-cols-2 gap-4 text-sm mb-5">
                 <div className="bg-neutral-800/60 p-3.5 rounded-2xl border border-neutral-700/60">
-                  <span className="text-xs text-neutral-400 block mb-0.5">Check-In Date</span>
+                  <span className="text-xs text-neutral-400 block mb-0.5">{t("receptionistCheckInDate")}</span>
                   <span className="font-bold text-white">{booking.check_in_date}</span>
                 </div>
                 <div className="bg-neutral-800/60 p-3.5 rounded-2xl border border-neutral-700/60">
-                  <span className="text-xs text-neutral-400 block mb-0.5">Check-Out Date</span>
+                  <span className="text-xs text-neutral-400 block mb-0.5">{t("receptionistCheckOutDate")}</span>
                   <span className="font-bold text-white">{booking.check_out_date}</span>
                 </div>
               </div>
 
               <div className="space-y-2.5 text-sm bg-neutral-800/40 p-4.5 rounded-2xl border border-neutral-700/40 mb-5">
                 <div className="flex justify-between">
-                  <span className="text-neutral-400">Total Nights:</span>
-                  <span className="font-bold">{calculateNights(booking.check_in_date, booking.check_out_date)} Nights</span>
+                  <span className="text-neutral-400">{t("checkinTotalNights")}:</span>
+                  <span className="font-bold">{t("bookingDetailNights", { count: calculateNights(booking.check_in_date, booking.check_out_date) })}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-400">Primary Guest:</span>
-                  <span className="font-bold text-primary-300">{booking.user?.full_name || booking.guest?.full_name || "Guest"}</span>
+                  <span className="text-neutral-400">{t("checkinPrimaryGuest")}:</span>
+                  <span className="font-bold text-primary-300">{booking.user?.full_name || booking.guest?.full_name || t("bookingsGuest")}</span>
                 </div>
                 {activeTab === "checkout" ? (
                   loadingCheckout ? (
                     <div className="text-xs text-neutral-400 animate-pulse text-center py-2">
-                      Calculating Billing Details...
+                      {t("checkinCalculatingBilling")}
                     </div>
                   ) : checkoutDetails ? (
                     <>
                       <div className="flex justify-between pt-2 border-t border-neutral-700/40">
-                        <span className="text-neutral-400">Room Charges:</span>
+                        <span className="text-neutral-400">{t("bookingDetailRoomCharge")}:</span>
                         <span className="font-bold">{formatMoney(checkoutDetails.room_charges)}</span>
                       </div>
                       {checkoutDetails.service_charges > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-amber-400 font-semibold">Food & Service Orders:</span>
+                          <span className="text-amber-400 font-semibold">{t("checkinFoodServiceOrders")}:</span>
                           <span className="font-bold text-amber-300">{formatMoney(checkoutDetails.service_charges_detail.total_service)}</span>
                         </div>
                       )}
@@ -817,23 +821,23 @@ function CheckInContent() {
                         <div className="pl-3 space-y-1 text-xs border-l border-amber-500/30 my-1">
                           {checkoutDetails.service_charges_detail.orders.map((ord: any) => {
                             let itemPrice = Number(ord.total_amount || 0);
-                            let displayName = "Service Order";
+                            let displayName = t("checkinServiceOrder");
                             try {
                               if (ord.notes && ord.notes.trim().startsWith("{")) {
                                 const notesObj = JSON.parse(ord.notes);
                                 if (notesObj.is_car_rental) {
                                   const pick = notesObj.pickup_date ? notesObj.pickup_date.split("T")[0] : "";
                                   const drop = notesObj.dropoff_date ? notesObj.dropoff_date.split("T")[0] : "";
-                                  displayName = `Thuê xe ${notesObj.car_type} (${pick} ➔ ${drop})`;
+                                  displayName = t("checkinCarRentalLine", { type: notesObj.car_type, pick, drop });
                                   itemPrice = itemPrice * 26320;
                                 } else {
-                                  displayName = notesObj.notes || "Service Order";
+                                  displayName = notesObj.notes || t("checkinServiceOrder");
                                 }
                               } else {
-                                displayName = ord.notes?.replace(/\[[^\]]+\]/g, "").trim() || "Service Order";
+                                displayName = ord.notes?.replace(/\[[^\]]+\]/g, "").trim() || t("checkinServiceOrder");
                               }
                             } catch (e) {
-                              displayName = ord.notes?.replace(/\[[^\]]+\]/g, "").trim() || "Service Order";
+                              displayName = ord.notes?.replace(/\[[^\]]+\]/g, "").trim() || t("checkinServiceOrder");
                             }
                             return (
                               <div key={ord.id} className="flex justify-between text-neutral-400">
@@ -847,7 +851,7 @@ function CheckInContent() {
                       
                       {checkoutDetails.incident_charges?.total_fine > 0 && (
                         <div className="flex justify-between">
-                          <span className="text-red-400 font-semibold">Incident Fines:</span>
+                          <span className="text-red-400 font-semibold">{t("checkinIncidentFines")}:</span>
                           <span className="font-bold text-red-300">{formatMoney(checkoutDetails.incident_charges.total_fine)}</span>
                         </div>
                       )}
@@ -857,7 +861,7 @@ function CheckInContent() {
                         <div className="pl-3 space-y-1 text-xs border-l border-red-500/30 my-1">
                           {checkoutDetails.incident_charges.incidents.map((inc: any) => (
                             <div key={inc.id} className="flex justify-between text-neutral-400">
-                              <span>• {inc.description || inc.incident_type || "Incident"}:</span>
+                              <span>• {inc.description || inc.incident_type || t("checkinIncident")}:</span>
                               <span>{formatMoney(inc.approved_charge || inc.estimated_charge || 0)}</span>
                             </div>
                           ))}
@@ -865,39 +869,39 @@ function CheckInContent() {
                       )}
                       
                       <div className="flex justify-between pt-2 border-t border-neutral-700/40">
-                        <span className="text-neutral-400">Subtotal (All Charges):</span>
+                        <span className="text-neutral-400">{t("checkinSubtotalAllCharges")}:</span>
                         <span className="font-bold">{formatMoney(checkoutDetails.subtotal)}</span>
                       </div>
                       
                       <div className="flex justify-between">
-                        <span className="text-neutral-400">VAT (2%):</span>
+                        <span className="text-neutral-400">{t("checkinVat", { rate: 2 })}:</span>
                         <span className="font-bold">{formatMoney(checkoutDetails.vat_amount)}</span>
                       </div>
                       
                       <div className="flex justify-between font-semibold">
-                        <span className="text-neutral-400">Total Invoice:</span>
+                        <span className="text-neutral-400">{t("checkinTotalInvoice")}:</span>
                         <span className="font-bold">{formatMoney(checkoutDetails.subtotal + checkoutDetails.vat_amount)}</span>
                       </div>
 
                       <div className="flex justify-between pt-2 border-t border-neutral-700/40">
-                        <span className="text-neutral-400">Deposit Paid:</span>
+                        <span className="text-neutral-400">{t("checkinDepositPaid")}:</span>
                         <span className="font-bold text-green-400">-{formatMoney(checkoutDetails.deposit_paid)}</span>
                       </div>
                       
                       <div className="flex justify-between pt-2 border-t border-neutral-700/60 text-base font-extrabold">
-                        <span className="text-primary-300">Amount Due (Settle):</span>
+                        <span className="text-primary-300">{t("checkinAmountDue")}:</span>
                         <span className="text-white">{formatMoney(checkoutDetails.grand_total)}</span>
                       </div>
                     </>
                   ) : (
                     <div className="flex justify-between pt-2 border-t border-neutral-700/40">
-                      <span className="text-neutral-400">Total Room Charge:</span>
+                      <span className="text-neutral-400">{t("checkinTotalRoomCharge")}:</span>
                       <span className="font-extrabold text-white text-base">{formatMoney(booking.total_amount)}</span>
                     </div>
                   )
                 ) : (
                   <div className="flex justify-between pt-2 border-t border-neutral-700/40">
-                    <span className="text-neutral-400">Total Room Charge:</span>
+                    <span className="text-neutral-400">{t("checkinTotalRoomCharge")}:</span>
                     <span className="font-extrabold text-white text-base">{formatMoney(booking.total_amount)}</span>
                   </div>
                 )}
@@ -907,23 +911,23 @@ function CheckInContent() {
             <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-green-950 via-neutral-900 to-neutral-900 text-white shadow-xl border border-green-800/60 relative overflow-hidden">
               <div className="flex items-start justify-between pb-5 border-b border-neutral-700/80 mb-5">
                 <div>
-                  <span className="text-xs font-bold uppercase tracking-wider text-green-400">Walk-In Instant Booking Card</span>
-                  <h4 className="text-3xl font-extrabold mt-1">Room {selectedRoom.room_number}</h4>
+                  <span className="text-xs font-bold uppercase tracking-wider text-green-400">{t("checkinWalkInCard")}</span>
+                  <h4 className="text-3xl font-extrabold mt-1">{t("bookingsRoomNumber", { number: selectedRoom.room_number })}</h4>
                   <p className="text-sm text-neutral-300 font-medium">{selectedRoom.room_type?.name}</p>
                 </div>
-                <span className="px-3 py-1 rounded-xl text-xs font-bold bg-green-100 text-green-900">Vacant</span>
+                <span className="px-3 py-1 rounded-xl text-xs font-bold bg-green-100 text-green-900">{t("checkinVacant")}</span>
               </div>
               <div className="space-y-2 text-sm bg-neutral-800/60 p-4 rounded-2xl border border-neutral-700/50">
                 <div className="flex justify-between">
-                  <span className="text-neutral-400">Stay Duration:</span>
+                  <span className="text-neutral-400">{t("checkinStayDuration")}:</span>
                   <span className="font-bold">{walkInDates.check_in} &rarr; {walkInDates.check_out}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-neutral-400">Rate / Night:</span>
+                  <span className="text-neutral-400">{t("checkinRatePerNight")}:</span>
                   <span className="font-bold">{formatMoney(selectedRoom.room_type?.base_price || (selectedRoom.room_type as any)?.base_price_per_night || 0)}</span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-neutral-700/60">
-                  <span className="text-neutral-300 font-bold">Estimated Total:</span>
+                  <span className="text-neutral-300 font-bold">{t("checkinEstimatedTotal")}:</span>
                   <span className="font-extrabold text-green-400 text-base">
                     {formatMoney(calculateNights(walkInDates.check_in, walkInDates.check_out) * (selectedRoom.room_type?.base_price || (selectedRoom.room_type as any)?.base_price_per_night || 0))}
                   </span>
@@ -933,8 +937,8 @@ function CheckInContent() {
           ) : (
             <div className="p-10 rounded-3xl bg-neutral-50 dark:bg-neutral-900/50 border border-dashed border-neutral-300 dark:border-neutral-800 text-center text-neutral-500">
               <Home className="w-12 h-12 mx-auto text-neutral-300 dark:text-neutral-600 mb-3" />
-              <p className="font-bold text-base text-neutral-700 dark:text-neutral-300">No Room or Reservation Selected</p>
-              <p className="text-xs mt-1">Please select an item from Step 1 on the left to proceed with verification and actions.</p>
+              <p className="font-bold text-base text-neutral-700 dark:text-neutral-300">{t("checkinNothingSelected")}</p>
+              <p className="text-xs mt-1">{t("checkinSelectStepOneHelp")}</p>
             </div>
           )}
 
@@ -945,12 +949,12 @@ function CheckInContent() {
               <div className="space-y-6">
                 <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-amber-600" />
-                  <span>Step 2: Bill Settlement & Check-Out</span>
+                  <span>{t("checkinStepSettlement")}</span>
                 </h3>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">Payment Method</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-2">{t("bookingDetailChoosePaymentMethod")}</label>
                     <div className="grid grid-cols-2 gap-3">
                       {(["CASH", "BANK_TRANSFER"] as const).map((method) => (
                         <button
@@ -966,7 +970,7 @@ function CheckInContent() {
                               : "border-neutral-200 dark:border-neutral-700 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-50 dark:hover:bg-neutral-800"
                           }`}
                         >
-                          <span>{method === "CASH" ? "💵 Cash" : "🏦 Bank Transfer"}</span>
+                          <span>{method === "CASH" ? `💵 ${t("bookingDetailPaymentCash")}` : `🏦 ${t("bookingDetailPaymentTransfer")}`}</span>
                         </button>
                       ))}
                     </div>
@@ -975,30 +979,30 @@ function CheckInContent() {
                       <div className="mt-5 p-5 bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-200 dark:border-neutral-700 flex flex-col items-center">
                         <span className="text-sm font-semibold mb-3 text-neutral-800 dark:text-neutral-200 flex items-center gap-2">
                           <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping"></span>
-                          Quét mã VietQR (PayOS) để thanh toán
+                          {t("checkinScanVietQR")}
                         </span>
                         <div className="p-3 bg-white rounded-xl shadow-sm border border-neutral-200 relative overflow-hidden group">
                           <img
                             src={payosQRUrl && payosQRUrl.startsWith("http") ? payosQRUrl : `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(payosQRUrl || "")}`}
-                            alt="VietQR Code"
+                            alt={t("checkinVietQRAlt")}
                             className="w-48 h-48 object-contain"
                           />
                           {/* Scanning Animation line */}
                           <div className="absolute left-0 right-0 h-0.5 bg-primary-500 opacity-60 animate-bounce top-0 group-hover:block"></div>
                         </div>
                         <p className="text-xs text-neutral-500 mt-4 text-center px-4 leading-relaxed">
-                          Mã QR VietQR đã được tạo tự động bởi PayOS. Vui lòng nhắc khách hàng giữ nguyên nội dung chuyển khoản để hệ thống xác nhận thanh toán.
+                          {t("checkinVietQRHelp")}
                         </p>
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">Transaction / Receipt Ref</label>
+                    <label className="block text-xs font-bold uppercase tracking-wider text-neutral-500 mb-1.5">{t("checkinTransactionReference")}</label>
                     <Input
                       value={transactionRef}
                       onChange={(e) => setTransactionRef(e.target.value)}
-                      placeholder="e.g. TXN-998822 or CASH-RECEIPT-01"
+                      placeholder={t("checkinTransactionPlaceholder")}
                       className="h-11 font-mono text-sm"
                     />
                   </div>
@@ -1012,8 +1016,8 @@ function CheckInContent() {
                     disabled={actionLoading || !booking}
                   >
                     {paymentMethod === "BANK_TRANSFER" && !showQR 
-                      ? "Tạo mã QR Thanh Toán" 
-                      : "Xác nhận & Hoàn tất Check-Out"}
+                      ? t("checkinCreatePaymentQR")
+                      : t("checkinConfirmCheckout")}
                   </ButtonPrimary>
                 </div>
               </div>
@@ -1022,24 +1026,24 @@ function CheckInContent() {
               <div className="space-y-6">
                 <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
                   <FileText className="w-5 h-5 text-primary-6000" />
-                  <span>Step 2: Guest Identity & Room Assignment</span>
+                  <span>{t("checkinStepGuestIdentity")}</span>
                 </h3>
 
                 <div className="space-y-4">
                   <label className="block">
-                    <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">Full Name</span>
+                    <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">{t("accountPageName")}</span>
                     <Input
                       value={guestForm.full_name}
                       onChange={(e) => setGuestForm({ ...guestForm, full_name: e.target.value })}
                       className="mt-1.5 h-11 font-semibold"
-                      placeholder="Enter guest full name"
+                      placeholder={t("checkinGuestNamePlaceholder")}
                       required
                     />
                   </label>
 
                   <div className="grid grid-cols-2 gap-4">
                     <label className="block">
-                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">ID Card Number</span>
+                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">{t("checkinIdCardNumber")}</span>
                       <Input
                         value={guestForm.id_card_number}
                         onChange={(e) => {
@@ -1047,27 +1051,27 @@ function CheckInContent() {
                           setGuestForm({ ...guestForm, id_card_number: val });
                         }}
                         className="mt-1.5 h-11 font-mono"
-                        placeholder="ID / Passport No."
+                        placeholder={t("checkinIdPassportPlaceholder")}
                         required
                       />
                     </label>
                     <label className="block">
-                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">ID Type</span>
+                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">{t("checkinIdType")}</span>
                       <select
                         value={guestForm.id_card_type}
                         onChange={(e) => setGuestForm({ ...guestForm, id_card_type: e.target.value })}
                         className="block w-full text-sm rounded-2xl border-neutral-200 focus:border-primary-300 bg-white dark:border-neutral-700 dark:bg-neutral-900 mt-1.5 h-11 font-medium px-3"
                       >
-                        <option value="CCCD">CCCD / CMND</option>
-                        <option value="PASSPORT">Passport</option>
-                        <option value="DRIVERS_LICENSE">Driver's License</option>
+                        <option value="CCCD">{t("checkinNationalId")}</option>
+                        <option value="PASSPORT">{t("checkinPassport")}</option>
+                        <option value="DRIVERS_LICENSE">{t("checkinDriversLicense")}</option>
                       </select>
                     </label>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <label className="block">
-                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">Nationality</span>
+                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">{t("bookingDetailNationality")}</span>
                       <Input
                         value={guestForm.nationality}
                         onChange={(e) => setGuestForm({ ...guestForm, nationality: e.target.value })}
@@ -1075,12 +1079,12 @@ function CheckInContent() {
                       />
                     </label>
                     <label className="block">
-                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">Address</span>
+                      <span className="text-neutral-800 dark:text-neutral-200 text-xs font-bold uppercase tracking-wider">{t("accountPageAddress")}</span>
                       <Input
                         value={guestForm.address}
                         onChange={(e) => setGuestForm({ ...guestForm, address: e.target.value })}
                         className="mt-1.5 h-11 font-medium"
-                        placeholder="Optional address"
+                        placeholder={t("checkinOptionalAddress")}
                       />
                     </label>
                   </div>
@@ -1094,7 +1098,7 @@ function CheckInContent() {
                       loading={actionLoading}
                       disabled={actionLoading || !selectedRoom}
                     >
-                      🚀 Create Walk-In Booking & Assign Room Now
+                      🚀 {t("checkinCreateWalkInNow")}
                     </ButtonPrimary>
                   ) : (
                     <ButtonPrimary
@@ -1103,7 +1107,7 @@ function CheckInContent() {
                       loading={actionLoading}
                       disabled={actionLoading || !booking}
                     >
-                      Confirm Check-In & Assign Room
+                      {t("checkinConfirmAssignRoom")}
                     </ButtonPrimary>
                   )}
                 </div>
@@ -1118,8 +1122,10 @@ function CheckInContent() {
 }
 
 export default function CheckInPage() {
+  const { t } = useTranslation();
+
   return (
-    <Suspense fallback={<div className="container py-20 text-center">Loading Check-In / Check-Out Console...</div>}>
+    <Suspense fallback={<div className="container py-20 text-center">{t("checkinConsoleLoading")}</div>}>
       <DashboardLayout>
         <CheckInContent />
       </DashboardLayout>

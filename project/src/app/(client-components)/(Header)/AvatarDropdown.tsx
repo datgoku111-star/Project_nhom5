@@ -1,9 +1,12 @@
+"use client";
+
 import { Popover, Transition } from "@headlessui/react";
 import { Fragment } from "react";
 import Avatar from "@/shared/Avatar";
 import SwitchDarkMode2 from "@/shared/SwitchDarkMode2";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import { useTranslation } from "react-i18next";
 
 interface Props {
   className?: string;
@@ -11,6 +14,7 @@ interface Props {
 
 export default function AvatarDropdown({ className = "" }: Props) {
   const { user, logout } = useAuth();
+  const { t } = useTranslation();
 
   const handleLogout = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -44,7 +48,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                       <Avatar sizeClass="w-12 h-12" userName={user?.full_name} imgUrl={undefined} />
 
                       <div className="flex-grow">
-                        <h4 className="font-semibold">{user?.full_name || "User"}</h4>
+                        <h4 className="font-semibold">{user?.full_name || t("accountMenuUser")}</h4>
                         <p className="text-xs mt-0.5">{user?.email || ""}</p>
                       </div>
                     </div>
@@ -61,8 +65,8 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         >
                           <div className="flex items-center justify-center flex-shrink-0 text-xl">🏢</div>
                           <div className="ml-4">
-                            <p className="text-sm font-bold">Receptionist Portal</p>
-                            <p className="text-xs opacity-75">Front Desk Operations</p>
+                            <p className="text-sm font-bold">{t("headerReceptionistPortal")}</p>
+                            <p className="text-xs opacity-75">{t("accountMenuFrontDeskOperations")}</p>
                           </div>
                         </Link>
                         <Link
@@ -72,7 +76,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         >
                           <div className="flex items-center justify-center flex-shrink-0 text-xl">🏷️</div>
                           <div className="ml-4">
-                            <p className="text-sm font-semibold">Check-In / Out Desk</p>
+                            <p className="text-sm font-semibold">{t("roleNavCheckInOut")}</p>
                           </div>
                         </Link>
                         <div className="w-full border-b border-neutral-200 dark:border-neutral-700 my-1" />
@@ -88,8 +92,8 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         >
                           <div className="flex items-center justify-center flex-shrink-0 text-xl">⚡</div>
                           <div className="ml-4">
-                            <p className="text-sm font-bold">Admin Dashboard</p>
-                            <p className="text-xs opacity-75">System Management</p>
+                            <p className="text-sm font-bold">{t("headerAdminDashboard")}</p>
+                            <p className="text-xs opacity-75">{t("accountMenuSystemManagement")}</p>
                           </div>
                         </Link>
                         <div className="w-full border-b border-neutral-200 dark:border-neutral-700 my-1" />
@@ -105,8 +109,8 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         >
                           <div className="flex items-center justify-center flex-shrink-0 text-xl">🧹</div>
                           <div className="ml-4">
-                            <p className="text-sm font-bold">Housekeeping Workspace</p>
-                            <p className="text-xs opacity-75">Room Cleaning Grid</p>
+                            <p className="text-sm font-bold">{t("accountMenuHousekeepingWorkspace")}</p>
+                            <p className="text-xs opacity-75">{t("accountMenuRoomCleaningGrid")}</p>
                           </div>
                         </Link>
                         <div className="w-full border-b border-neutral-200 dark:border-neutral-700 my-1" />
@@ -144,7 +148,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium ">{"My Account"}</p>
+                        <p className="text-sm font-medium ">{t("accountMenuMyAccount")}</p>
                       </div>
                     </Link>
 
@@ -196,7 +200,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium ">{"My bookings"}</p>
+                        <p className="text-sm font-medium ">{t("accountMenuMyBookings")}</p>
                       </div>
                     </Link>
 
@@ -223,7 +227,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium ">{"Wishlist"}</p>
+                        <p className="text-sm font-medium ">{t("accountMenuWishlist")}</p>
                       </div>
                     </Link>
 
@@ -264,7 +268,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                           </svg>
                         </div>
                         <div className="ml-4">
-                          <p className="text-sm font-medium ">{"Dark theme"}</p>
+                          <p className="text-sm font-medium ">{t("accountMenuDarkTheme")}</p>
                         </div>
                       </div>
                       <SwitchDarkMode2 />
@@ -329,7 +333,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium ">{"Help"}</p>
+                        <p className="text-sm font-medium ">{t("accountMenuHelp")}</p>
                       </div>
                     </Link>
 
@@ -373,7 +377,7 @@ export default function AvatarDropdown({ className = "" }: Props) {
                         </svg>
                       </div>
                       <div className="ml-4">
-                        <p className="text-sm font-medium ">{"Log out"}</p>
+                        <p className="text-sm font-medium ">{t("accountMenuLogout")}</p>
                       </div>
                     </button>
                   </div>

@@ -5,6 +5,8 @@ import { Utensils, Plus, Edit2, Trash2, Check, X, DollarSign, Tag, RefreshCw, Al
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
 import Input from "@/shared/Input";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export interface ServiceItem {
   id: string;
@@ -17,14 +19,26 @@ export interface ServiceItem {
 }
 
 const CATEGORIES = [
-  { value: "FOOD", label: "🍲 Đồ ăn (Food)", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
-  { value: "BEVERAGE", label: "🍹 Thức uống (Beverage)", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
-  { value: "LAUNDRY", label: "👔 Giặt ủi (Laundry)", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
-  { value: "AMENITY", label: "🧼 Tiện ích phòng (Amenity)", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
-  { value: "OTHER", label: "📌 Khác (Other)", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300" },
-];
+  { value: "FOOD", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300" },
+  { value: "BEVERAGE", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" },
+  { value: "LAUNDRY", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" },
+  { value: "AMENITY", color: "bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-300" },
+  { value: "OTHER", color: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-300" },
+] as const;
 
 export default function AdminServicesPage() {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+  const getCategoryLabel = (category: ServiceItem["category"]) => {
+    switch (category) {
+      case "FOOD": return t("adminServicesCategoryFood");
+      case "BEVERAGE": return t("adminServicesCategoryBeverage");
+      case "LAUNDRY": return t("adminServicesCategoryLaundry");
+      case "AMENITY": return t("adminServicesCategoryAmenity");
+      case "OTHER": return t("adminServicesCategoryOther");
+    }
+  };
   const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState("");
@@ -47,7 +61,7 @@ export default function AdminServicesPage() {
     setErrorMsg("");
     try {
       const res = await fetch("/api/services?all=true");
-      if (!res.ok) throw new Error("Không thể tải danh sách dịch vụ");
+      if (!res.ok) throw new Error(t("adminServicesLoadError"));
       const data = await res.json();
       if (Array.isArray(data)) {
         setServices(data);
@@ -105,7 +119,7 @@ export default function AdminServicesPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name.trim() || formData.price <= 0) {
-      alert("Vui lòng nhập tên dịch vụ và giá hợp lệ!");
+      alert(t("adminServicesValidation"));
       return;
     }
 
@@ -121,7 +135,7 @@ export default function AdminServicesPage() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: editingItem.id, ...formData }),
           });
-          if (!res.ok) throw new Error("Lỗi cập nhật dịch vụ");
+          if (!res.ok) throw new Error(t("adminServicesUpdateError"));
           await fetchServices();
         }
       } else {
@@ -143,22 +157,22 @@ export default function AdminServicesPage() {
       }
       setIsModalOpen(false);
     } catch (err: any) {
-      alert("Lỗi: " + err.message);
+      alert(t("adminServicesGenericError", { message: err.message }));
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa dịch vụ/món ăn này khỏi thực đơn?")) return;
+    if (!confirm(t("adminServicesConfirmDelete"))) return;
     try {
       if (id.startsWith("demo-")) {
         setServices((prev) => prev.filter((s) => s.id !== id));
       } else {
         const res = await fetch(`/api/services?id=${id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("Không thể xóa");
+        if (!res.ok) throw new Error(t("adminServicesDeleteError"));
         setServices((prev) => prev.filter((s) => s.id !== id));
       }
     } catch (err: any) {
-      alert("Lỗi khi xóa: " + err.message);
+      alert(t("adminServicesDeleteErrorWithMessage", { message: err.message }));
     }
   };
 
@@ -191,20 +205,20 @@ export default function AdminServicesPage() {
         <div>
           <h1 className="text-2xl md:text-3xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-3">
             <Utensils className="w-8 h-8 text-primary-600" />
-            Quản Lý Danh Mục Dịch Vụ & F&B
+            {t("adminServicesTitle")}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 mt-1 text-sm">
-            Thêm mới, định giá, phân loại đồ ăn/thức uống và bật/tắt khả năng gọi món cho khách sạn.
+            {t("adminServicesSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
           <ButtonThird onClick={fetchServices} sizeClass="px-4 py-2.5">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Làm mới
+            {t("adminServicesRefresh")}
           </ButtonThird>
           <ButtonPrimary onClick={openAddModal} sizeClass="px-5 py-2.5">
             <Plus className="w-5 h-5 mr-1.5" />
-            Thêm Dịch Vụ Mới
+            {t("adminServicesAdd")}
           </ButtonPrimary>
         </div>
       </div>
@@ -219,7 +233,7 @@ export default function AdminServicesPage() {
               : "bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100"
           }`}
         >
-          🌟 Tất cả ({services.length})
+          {t("adminServicesAll", { count: services.length })}
         </button>
         {CATEGORIES.map((cat) => {
           const count = services.filter((s) => s.category === cat.value).length;
@@ -233,7 +247,7 @@ export default function AdminServicesPage() {
                   : "bg-white dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 hover:bg-neutral-100"
               }`}
             >
-              {cat.label.split(" (")[0]} ({count})
+              {getCategoryLabel(cat.value)} ({count})
             </button>
           );
         })}
@@ -242,21 +256,21 @@ export default function AdminServicesPage() {
       {/* Services Table Card */}
       <div className="bg-white dark:bg-neutral-800 rounded-2xl shadow-sm border border-neutral-100 dark:border-neutral-700 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-neutral-500">Đang tải danh mục dịch vụ...</div>
+          <div className="p-12 text-center text-neutral-500">{t("adminServicesLoading")}</div>
         ) : filteredServices.length === 0 ? (
           <div className="p-12 text-center text-neutral-500">
-            Không tìm thấy dịch vụ nào trong nhóm này. Hãy nhấn "Thêm Dịch Vụ Mới"!
+            {t("adminServicesEmpty")}
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-600 dark:text-neutral-300 font-semibold text-sm">
-                  <th className="py-4 px-6">Tên Dịch Vụ / Món Ăn</th>
-                  <th className="py-4 px-6">Phân Loại</th>
-                  <th className="py-4 px-6">Đơn Giá (VNĐ)</th>
-                  <th className="py-4 px-6">Trạng Thái Phục Vụ</th>
-                  <th className="py-4 px-6 text-right">Thao Tác</th>
+                  <th className="py-4 px-6">{t("adminServicesColumnName")}</th>
+                  <th className="py-4 px-6">{t("adminServicesColumnCategory")}</th>
+                  <th className="py-4 px-6">{t("adminServicesColumnPrice")}</th>
+                  <th className="py-4 px-6">{t("adminServicesColumnStatus")}</th>
+                  <th className="py-4 px-6 text-right">{t("adminServicesColumnActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700/60 text-sm">
@@ -276,11 +290,11 @@ export default function AdminServicesPage() {
                       </td>
                       <td className="py-4 px-6">
                         <span className={`px-2.5 py-1 rounded-lg font-medium text-xs ${catMeta?.color || ""}`}>
-                          {catMeta?.label || item.category}
+                          {getCategoryLabel(item.category)}
                         </span>
                       </td>
                       <td className="py-4 px-6 font-bold text-primary-600 dark:text-primary-400 text-base">
-                        {item.price.toLocaleString("vi-VN")} đ
+                        {new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND", maximumFractionDigits: 0 }).format(item.price)}
                       </td>
                       <td className="py-4 px-6">
                         <button
@@ -292,21 +306,25 @@ export default function AdminServicesPage() {
                           }`}
                         >
                           {item.is_available ? <Check className="w-3.5 h-3.5" /> : <X className="w-3.5 h-3.5" />}
-                          {item.is_available ? "Sẵn Sàng Phục Vụ" : "Tạm Ngưng (Hết Món)"}
+                          {item.is_available
+                            ? t("adminServicesAvailable")
+                            : t("adminServicesUnavailable")}
                         </button>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
                         <button
                           onClick={() => openEditModal(item)}
                           className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-200 transition-colors"
-                          title="Chỉnh sửa"
+                          title={t("adminServicesEdit")}
+                          aria-label={t("adminServicesEdit")}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(item.id)}
                           className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors"
-                          title="Xóa"
+                          title={t("adminServicesDelete")}
+                          aria-label={t("adminServicesDelete")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -326,11 +344,13 @@ export default function AdminServicesPage() {
           <div className="bg-white dark:bg-neutral-800 rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-neutral-100 dark:border-neutral-700 space-y-6">
             <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700 pb-4">
               <h3 className="text-xl font-bold text-neutral-900 dark:text-white">
-                {editingItem ? "✏️ Chỉnh Sửa Dịch Vụ / Món Ăn" : "➕ Thêm Dịch Vụ Mới"}
+                {editingItem ? t("adminServicesEditTitle") : t("adminServicesAddTitle")}
               </h3>
               <button
                 onClick={() => setIsModalOpen(false)}
                 className="text-neutral-400 hover:text-neutral-600 dark:hover:text-neutral-200 p-1"
+                title={t("adminServicesClose")}
+                aria-label={t("adminServicesClose")}
               >
                 <X className="w-6 h-6" />
               </button>
@@ -339,11 +359,11 @@ export default function AdminServicesPage() {
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Tên dịch vụ / món ăn <span className="text-red-500">*</span>
+                  {t("adminServicesNameField")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   required
-                  placeholder="Ví dụ: Phở Bò Kobe, Cà Phê Trứng, Khăn Tắm..."
+                  placeholder={t("adminServicesNamePlaceholder")}
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 />
@@ -352,22 +372,22 @@ export default function AdminServicesPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Phân Loại Nhóm <span className="text-red-500">*</span>
+                    {t("adminServicesCategoryField")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.category}
-                    onChange={(e: any) => setFormData({ ...formData, category: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, category: e.target.value as ServiceItem["category"] })}
                     className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-4 py-3 text-sm font-medium focus:ring-2 focus:ring-primary-600 outline-none"
                   >
                     {CATEGORIES.map((c) => (
-                      <option key={c.value} value={c.value}>{c.label}</option>
+                      <option key={c.value} value={c.value}>{getCategoryLabel(c.value)}</option>
                     ))}
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Đơn Giá (VNĐ) <span className="text-red-500">*</span>
+                    {t("adminServicesPriceField")} <span className="text-red-500">*</span>
                   </label>
                   <Input
                     required
@@ -382,11 +402,11 @@ export default function AdminServicesPage() {
 
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Mô Tả Chi Tiết (Tuỳ chọn)
+                  {t("adminServicesDescriptionField")}
                 </label>
                 <textarea
                   rows={3}
-                  placeholder="Thành phần nguyên liệu, cách phục vụ hoặc lưu ý đặc biệt..."
+                  placeholder={t("adminServicesDescriptionPlaceholder")}
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                   className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-4 py-3 text-sm focus:ring-2 focus:ring-primary-600 outline-none"
@@ -402,16 +422,16 @@ export default function AdminServicesPage() {
                   className="w-5 h-5 rounded text-primary-600 focus:ring-primary-500"
                 />
                 <label htmlFor="is_available" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer">
-                  Sẵn sàng phục vụ ngay (Bật/Tắt hiển thị)
+                  {t("adminServicesAvailableField")}
                 </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 dark:border-neutral-700">
                 <ButtonThird type="button" onClick={() => setIsModalOpen(false)}>
-                  Hủy Bỏ
+                  {t("adminServicesCancel")}
                 </ButtonThird>
                 <ButtonPrimary type="submit">
-                  {editingItem ? "Lưu Thay Đổi" : "Tạo Mới Dịch Vụ"}
+                  {editingItem ? t("adminServicesSaveChanges") : t("adminServicesCreate")}
                 </ButtonPrimary>
               </div>
             </form>

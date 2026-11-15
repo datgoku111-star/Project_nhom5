@@ -21,6 +21,8 @@ import { supabaseBrowser } from "@/lib/supabase";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
 import Input from "@/shared/Input";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 interface Room {
   id: string;
@@ -36,6 +38,9 @@ interface Room {
 }
 
 export default function AdminHotelsRoomsPage() {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -171,7 +176,7 @@ export default function AdminHotelsRoomsPage() {
       }
     } catch (err: any) {
       console.warn("Lỗi fetch rooms, hiển thị dữ liệu demo:", err.message);
-      setErrorMsg("Không thể tải dữ liệu từ Supabase. Đang hiển thị dữ liệu demo.");
+      setErrorMsg(t("adminHotelsLoadFallback"));
       setRooms(fallbackRooms);
     } finally {
       setLoading(false);
@@ -243,7 +248,7 @@ export default function AdminHotelsRoomsPage() {
     setFormError("");
     
     if (!formTitle.trim() || !formLocation.trim()) {
-      setFormError("Vui lòng điền đầy đủ Tên phòng và Địa chỉ.");
+      setFormError(t("adminHotelsRequiredFields"));
       return;
     }
 
@@ -257,12 +262,12 @@ export default function AdminHotelsRoomsPage() {
         try {
           finalImageUrl = await uploadImageToStorage(imageFile);
         } catch (uploadErr: any) {
-          throw new Error("Lỗi tải ảnh lên Storage: " + uploadErr.message);
+          throw new Error(t("adminHotelsUploadError", { message: uploadErr.message }));
         }
       }
 
       if (!finalImageUrl) {
-        throw new Error("Vui lòng chọn ảnh phòng hoặc cung cấp link ảnh.");
+        throw new Error(t("adminHotelsImageRequired"));
       }
 
       const roomData = {
@@ -310,7 +315,7 @@ export default function AdminHotelsRoomsPage() {
       setIsOpenModal(false);
     } catch (err: any) {
       console.error("Lỗi khi lưu phòng:", err);
-      setFormError(err.message || "Đã xảy ra lỗi trong quá trình lưu dữ liệu.");
+      setFormError(err.message || t("adminHotelsSaveError"));
     } finally {
       setUploadingImage(false);
     }
@@ -318,7 +323,7 @@ export default function AdminHotelsRoomsPage() {
 
   // Xóa phòng
   const handleDeleteRoom = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa phòng này không? Hành động này không thể hoàn tác.")) return;
+    if (!confirm(t("adminHotelsConfirmDelete"))) return;
 
     try {
       if (id.startsWith("mock-")) {
@@ -333,7 +338,7 @@ export default function AdminHotelsRoomsPage() {
         await fetchRooms();
       }
     } catch (err: any) {
-      alert("Lỗi khi xóa phòng: " + err.message);
+      alert(t("adminHotelsDeleteError", { message: err.message }));
     }
   };
 
@@ -351,15 +356,15 @@ export default function AdminHotelsRoomsPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-white flex items-center space-x-3">
             <Layers className="w-8 h-8 text-primary-600" />
-            <span>Quản Lý Danh Sách Phòng</span>
+            <span>{t("adminHotelsTitle")}</span>
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 mt-1.5 text-sm">
-            CRUD phòng khách sạn, đồng bộ hình ảnh qua Supabase Storage và hiển thị trực tiếp lên trang chủ.
+            {t("adminHotelsSubtitle")}
           </p>
         </div>
         <ButtonPrimary onClick={handleOpenAddModal} className="flex items-center space-x-2">
           <Plus className="w-5 h-5" />
-          <span>Thêm Phòng Mới</span>
+          <span>{t("adminHotelsAdd")}</span>
         </ButtonPrimary>
       </div>
 
@@ -373,7 +378,7 @@ export default function AdminHotelsRoomsPage() {
             className="ml-auto underline flex items-center space-x-1 hover:text-amber-950 font-bold"
           >
             <RefreshCw className="w-3.5 h-3.5" />
-            <span>Thử lại</span>
+            <span>{t("adminHotelsRetry")}</span>
           </button>
         </div>
       )}
@@ -386,7 +391,7 @@ export default function AdminHotelsRoomsPage() {
           </span>
           <input
             type="text"
-            placeholder="Tìm theo tên phòng, khách sạn hoặc địa chỉ..."
+            placeholder={t("adminHotelsSearchPlaceholder")}
             className="block w-full pl-9 pr-4 py-2.5 text-xs rounded-xl border border-neutral-200 dark:border-neutral-750 bg-neutral-50 dark:bg-neutral-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent text-neutral-900 dark:text-white font-medium"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -400,15 +405,15 @@ export default function AdminHotelsRoomsPage() {
           <table className="min-w-full divide-y divide-neutral-200 dark:divide-neutral-700 text-left text-xs">
             <thead className="bg-neutral-50 dark:bg-neutral-900/40 text-neutral-500 dark:text-neutral-400 font-bold uppercase tracking-wider">
               <tr>
-                <th scope="col" className="px-6 py-4.5 w-16 text-center">STT</th>
-                <th scope="col" className="px-6 py-4.5">Ảnh phòng</th>
-                <th scope="col" className="px-6 py-4.5">Tên phòng / Khách sạn</th>
-                <th scope="col" className="px-6 py-4.5">Địa chỉ</th>
-                <th scope="col" className="px-6 py-4.5">Giá / Đêm</th>
-                <th scope="col" className="px-6 py-4.5 text-center">Tiện ích (Giường/Khách)</th>
-                <th scope="col" className="px-6 py-4.5 text-center">Đánh giá</th>
-                <th scope="col" className="px-6 py-4.5 text-center">Còn lại</th>
-                <th scope="col" className="px-6 py-4.5 text-right">Thao tác</th>
+                <th scope="col" className="px-6 py-4.5 w-16 text-center">{t("adminHotelsColumnNumber")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminHotelsColumnImage")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminHotelsColumnName")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminHotelsColumnLocation")}</th>
+                <th scope="col" className="px-6 py-4.5">{t("adminHotelsColumnPrice")}</th>
+                <th scope="col" className="px-6 py-4.5 text-center">{t("adminHotelsColumnCapacity")}</th>
+                <th scope="col" className="px-6 py-4.5 text-center">{t("adminHotelsColumnRating")}</th>
+                <th scope="col" className="px-6 py-4.5 text-center">{t("adminHotelsColumnAvailable")}</th>
+                <th scope="col" className="px-6 py-4.5 text-right">{t("adminHotelsColumnActions")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-neutral-200 dark:divide-neutral-700">
@@ -430,7 +435,7 @@ export default function AdminHotelsRoomsPage() {
               ) : filteredRooms.length === 0 ? (
                 <tr>
                   <td colSpan={9} className="text-center py-16 text-neutral-500 dark:text-neutral-400 font-medium">
-                    Không tìm thấy phòng nào phù hợp trong hệ thống.
+                    {t("adminHotelsEmpty")}
                   </td>
                 </tr>
               ) : (
@@ -468,8 +473,8 @@ export default function AdminHotelsRoomsPage() {
 
                     {/* Giá tiền */}
                     <td className="px-6 py-4 whitespace-nowrap font-extrabold text-neutral-900 dark:text-white">
-                      {new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(room.price_per_night)}
-                      <span className="text-[10px] text-neutral-400 font-normal"> /đêm</span>
+                      {new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(room.price_per_night)}
+                      <span className="text-[10px] text-neutral-400 font-normal"> {t("adminHotelsPerNight")}</span>
                     </td>
 
                     {/* Tiện ích */}
@@ -477,11 +482,11 @@ export default function AdminHotelsRoomsPage() {
                       <div className="flex items-center justify-center space-x-3">
                         <span className="flex items-center space-x-1">
                           <Bed className="w-3.5 h-3.5 text-neutral-450" />
-                          <span>{room.beds} giường</span>
+                          <span>{t("adminHotelsBeds", { count: room.beds })}</span>
                         </span>
                         <span className="flex items-center space-x-1">
                           <Users className="w-3.5 h-3.5 text-neutral-450" />
-                          <span>{room.guests} khách</span>
+                          <span>{t("adminHotelsGuests", { count: room.guests })}</span>
                         </span>
                       </div>
                     </td>
@@ -501,7 +506,7 @@ export default function AdminHotelsRoomsPage() {
                           ? "bg-red-50 text-red-700 border border-red-200 dark:bg-red-950/20 dark:text-red-400 dark:border-red-900" 
                           : "bg-green-50 text-green-700 border border-green-200 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
                       }`}>
-                        Còn {room.available_rooms} phòng
+                        {t("adminHotelsAvailableRooms", { count: room.available_rooms })}
                       </span>
                     </td>
 
@@ -511,14 +516,16 @@ export default function AdminHotelsRoomsPage() {
                         <button
                           onClick={() => handleOpenEditModal(room)}
                           className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title="Sửa phòng này"
+                          title={t("adminHotelsEdit")}
+                          aria-label={t("adminHotelsEdit")}
                         >
                           <Edit className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDeleteRoom(room.id)}
                           className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                          title="Xóa phòng này"
+                          title={t("adminHotelsDelete")}
+                          aria-label={t("adminHotelsDelete")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -540,11 +547,13 @@ export default function AdminHotelsRoomsPage() {
             {/* Modal Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-150 dark:border-neutral-700">
               <h3 className="text-lg font-bold text-neutral-900 dark:text-white">
-                {editingRoom ? "Chỉnh Sửa Thông Tin Phòng" : "Thêm Phòng Khách Sạn Mới"}
+                {editingRoom ? t("adminHotelsEditTitle") : t("adminHotelsAddTitle")}
               </h3>
               <button 
                 onClick={() => setIsOpenModal(false)}
                 className="p-1 rounded-full text-neutral-400 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition-colors"
+                title={t("adminHotelsClose")}
+                aria-label={t("adminHotelsClose")}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -561,13 +570,13 @@ export default function AdminHotelsRoomsPage() {
               {/* Tên phòng */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                  Tên Phòng / Khách sạn <span className="text-red-500">*</span>
+                  {t("adminHotelsNameField")} <span className="text-red-500">*</span>
                 </label>
                 <Input 
                   type="text" 
                   value={formTitle} 
                   onChange={(e) => setFormTitle(e.target.value)}
-                  placeholder="Ví dụ: Best Western Cedars Hotel..."
+                  placeholder={t("adminHotelsNamePlaceholder")}
                   required
                 />
               </div>
@@ -575,13 +584,13 @@ export default function AdminHotelsRoomsPage() {
               {/* Địa chỉ */}
               <div className="space-y-1">
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                  Địa Chỉ Khu Vực <span className="text-red-500">*</span>
+                  {t("adminHotelsLocationField")} <span className="text-red-500">*</span>
                 </label>
                 <Input 
                   type="text" 
                   value={formLocation} 
                   onChange={(e) => setFormLocation(e.target.value)}
-                  placeholder="Ví dụ: 1 Anzinger Court..."
+                  placeholder={t("adminHotelsLocationPlaceholder")}
                   required
                 />
               </div>
@@ -590,7 +599,7 @@ export default function AdminHotelsRoomsPage() {
               <div className="grid grid-cols-3 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                    Giá / Đêm ($) <span className="text-red-500">*</span>
+                    {t("adminHotelsPriceField")} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="number" 
@@ -602,7 +611,7 @@ export default function AdminHotelsRoomsPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                    Số Giường <span className="text-red-500">*</span>
+                    {t("adminHotelsBedsField")} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="number" 
@@ -614,7 +623,7 @@ export default function AdminHotelsRoomsPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                    Số Khách Max <span className="text-red-500">*</span>
+                    {t("adminHotelsGuestsField")} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="number" 
@@ -630,7 +639,7 @@ export default function AdminHotelsRoomsPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                    Đánh Giá Sao (1.0 - 5.0) <span className="text-red-500">*</span>
+                    {t("adminHotelsRatingField")} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="number" 
@@ -644,7 +653,7 @@ export default function AdminHotelsRoomsPage() {
                 </div>
                 <div className="space-y-1">
                   <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350">
-                    Số Phòng Trống <span className="text-red-500">*</span>
+                    {t("adminHotelsAvailableField")} <span className="text-red-500">*</span>
                   </label>
                   <Input 
                     type="number" 
@@ -659,7 +668,7 @@ export default function AdminHotelsRoomsPage() {
               {/* Upload Hình ảnh */}
               <div className="space-y-2.5">
                 <label className="text-xs font-bold text-neutral-700 dark:text-neutral-350 block">
-                  Hình Ảnh Minh Họa <span className="text-red-500">*</span>
+                  {t("adminHotelsImageField")} <span className="text-red-500">*</span>
                 </label>
                 
                 {/* Chọn File ảnh máy tính */}
@@ -668,10 +677,12 @@ export default function AdminHotelsRoomsPage() {
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">
                       <ImageIcon className="w-8 h-8 text-neutral-400 mb-2" />
                       <p className="text-xs text-neutral-500 dark:text-neutral-450 font-semibold text-center">
-                        {imageFile ? `Đã chọn: ${imageFile.name}` : "Nhấp để tải ảnh lên Supabase Storage"}
+                        {imageFile
+                          ? t("adminHotelsSelectedFile", { name: imageFile.name })
+                          : t("adminHotelsUploadPrompt")}
                       </p>
                       <p className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1">
-                        PNG, JPG, JPEG (Tối đa 5MB)
+                        {t("adminHotelsUploadHint")}
                       </p>
                     </div>
                     <input 
@@ -690,7 +701,7 @@ export default function AdminHotelsRoomsPage() {
 
                 {/* Hoặc Nhập URL ảnh */}
                 <div className="space-y-1">
-                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block text-center uppercase font-bold">Hoặc</span>
+                  <span className="text-[10px] text-neutral-400 dark:text-neutral-500 block text-center uppercase font-bold">{t("adminHotelsOr")}</span>
                   <Input 
                     type="url" 
                     value={formImageUrl.startsWith("blob:") ? "" : formImageUrl} 
@@ -698,7 +709,7 @@ export default function AdminHotelsRoomsPage() {
                       setFormImageUrl(e.target.value);
                       setImageFile(null);
                     }}
-                    placeholder="Nhập đường dẫn URL ảnh trực tiếp..."
+                    placeholder={t("adminHotelsImageUrlPlaceholder")}
                   />
                 </div>
 
@@ -707,7 +718,7 @@ export default function AdminHotelsRoomsPage() {
                   <div className="relative mt-2 rounded-xl overflow-hidden border border-neutral-200/50 dark:border-neutral-700 h-32 w-full">
                     <img 
                       src={formImageUrl} 
-                      alt="Room Preview" 
+                      alt={t("adminHotelsImagePreview")}
                       className="w-full h-full object-cover"
                     />
                     <button
@@ -717,7 +728,8 @@ export default function AdminHotelsRoomsPage() {
                         setImageFile(null);
                       }}
                       className="absolute top-2 right-2 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors shadow-md"
-                      title="Gỡ ảnh"
+                      title={t("adminHotelsRemoveImage")}
+                      aria-label={t("adminHotelsRemoveImage")}
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -728,11 +740,11 @@ export default function AdminHotelsRoomsPage() {
               {/* Actions */}
               <div className="flex items-center justify-end space-x-3 pt-4 border-t border-neutral-100 dark:border-neutral-700 mt-6">
                 <ButtonThird type="button" onClick={() => setIsOpenModal(false)} disabled={uploadingImage}>
-                  Hủy bỏ
+                  {t("adminHotelsCancel")}
                 </ButtonThird>
                 <ButtonPrimary type="submit" disabled={uploadingImage} className="flex items-center space-x-2">
                   {uploadingImage && <Loader2 className="w-4 h-4 animate-spin" />}
-                  <span>{editingRoom ? "Cập Nhật" : "Lưu Lại"}</span>
+                  <span>{editingRoom ? t("adminHotelsUpdate") : t("adminHotelsSave")}</span>
                 </ButtonPrimary>
               </div>
             </form>

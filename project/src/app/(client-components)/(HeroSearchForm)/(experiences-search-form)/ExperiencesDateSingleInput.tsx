@@ -8,6 +8,8 @@ import { CalendarIcon } from "@heroicons/react/24/outline";
 import DatePickerCustomHeaderTwoMonth from "@/components/DatePickerCustomHeaderTwoMonth";
 import DatePickerCustomDay from "@/components/DatePickerCustomDay";
 import ClearDataButton from "../ClearDataButton";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export interface ExperiencesDateSingleInputProps {
   className?: string;
@@ -18,6 +20,11 @@ const ExperiencesDateSingleInput: FC<ExperiencesDateSingleInputProps> = ({
   className = "",
   fieldClassName = "[ nc-hero-field-padding ]",
 }) => {
+  const { t, i18n } = useTranslation();
+  const activeLanguage = isAppLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(activeLanguage);
   const [startDate, setStartDate] = useState<Date | null>(
     new Date()
   );
@@ -37,20 +44,20 @@ const ExperiencesDateSingleInput: FC<ExperiencesDateSingleInputProps> = ({
         </div>
         <div className="flex-grow text-left">
           <span className="block xl:text-lg font-semibold">
-            {startDate?.toLocaleDateString("en-US", {
+            {startDate?.toLocaleDateString(formattingLocale, {
               month: "short",
               day: "2-digit",
-            }) || "Date"}
+            }) || t("homeSearchDate")}
             {endDate
               ? " - " +
-                endDate?.toLocaleDateString("en-US", {
+                endDate?.toLocaleDateString(formattingLocale, {
                   month: "short",
                   day: "2-digit",
                 })
               : ""}
           </span>
           <span className="block mt-1 text-sm text-neutral-400 leading-none font-light">
-            {startDate ? "Date" : `Add dates`}
+            {startDate ? t("homeSearchDate") : t("homeSearchAddDates")}
           </span>
         </div>
       </>

@@ -25,9 +25,14 @@ import {
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import Input from "@/shared/Input";
 import type { Room, Booking, RoomType } from "@/types/hotel";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export default function ReceptionistDashboard() {
   const { user, isLoading } = useAuth();
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
   const router = useRouter();
 
   const [dashboardData, setDashboardData] = useState<any>(null);
@@ -110,7 +115,7 @@ export default function ReceptionistDashboard() {
     setAvailableRooms(null);
 
     if (checkInDate >= checkOutDate) {
-      setSearchError("Check-out date must be strictly after Check-in date.");
+      setSearchError(t("receptionistDateValidation"));
       setSearchingRooms(false);
       return;
     }
@@ -121,11 +126,11 @@ export default function ReceptionistDashboard() {
         url += `&type=${selectedTypeId}`;
       }
       const res = await fetch(url);
-      if (!res.ok) throw new Error("Failed to query available rooms");
+      if (!res.ok) throw new Error(t("receptionistSearchFailed"));
       const data = await res.json();
       setAvailableRooms(Array.isArray(data) ? data : []);
     } catch (err: any) {
-      setSearchError(err.message || "Error checking room availability");
+      setSearchError(err.message || t("receptionistSearchError"));
     } finally {
       setSearchingRooms(false);
     }
@@ -135,7 +140,7 @@ export default function ReceptionistDashboard() {
     return (
       <div className="container py-20 text-center">
         <div className="w-8 h-8 border-4 border-primary-6000 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-neutral-500 font-medium">Loading Front Desk Operations Console...</p>
+        <p className="text-neutral-500 font-medium">{t("receptionistLoading")}</p>
       </div>
     );
   }
@@ -157,16 +162,16 @@ export default function ReceptionistDashboard() {
         fetchDashboardData();
       } else {
         const err = await res.json();
-        alert(`Error: ${err.error}`);
+        alert(t("receptionistGenericError", { message: err.error }));
       }
     } catch (err) {
       console.error(err);
-      alert("Error sending cleaner");
+      alert(t("receptionistCleanerError"));
     }
   };
 
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("vi-VN", { style: "currency", currency: "VND" }).format(val || 0);
+    new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND" }).format(val || 0);
 
   const handleOverrideStatus = async (roomId: string, newStatus: string) => {
     try {
@@ -179,11 +184,11 @@ export default function ReceptionistDashboard() {
         setRooms(rooms.map(r => r.id === roomId ? { ...r, status: newStatus, status_updated_at: new Date().toISOString() } : r));
       } else {
         const err = await res.json();
-        alert(`Failed to update room: ${err.error || "Unknown error"}`);
+        alert(t("receptionistRoomUpdateFailed", { message: err.error || t("adminCommonUnknown") }));
       }
     } catch (error) {
       console.error(error);
-      alert("Error updating room status");
+      alert(t("receptionistRoomUpdateError"));
     }
   };
 
@@ -194,13 +199,13 @@ export default function ReceptionistDashboard() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-6000 dark:text-primary-400 mb-1">
             <Sparkles className="w-4 h-4" />
-            <span>Front Desk Management Suite</span>
+            <span>{t("receptionistSuite")}</span>
           </div>
           <h1 className="text-3xl font-extrabold text-neutral-900 dark:text-white sm:text-4xl">
-            Receptionist Console
+            {t("receptionistTitle")}
           </h1>
           <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-            Welcome back, <span className="font-semibold text-neutral-800 dark:text-neutral-200">{user?.full_name}</span>. Oversee check-ins, departures, live room availability, and guest billing.
+            {t("receptionistWelcome")} <span className="font-semibold text-neutral-800 dark:text-neutral-200">{user?.full_name}</span>. {t("receptionistSubtitle")}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -210,14 +215,14 @@ export default function ReceptionistDashboard() {
             className="px-4 py-2.5 rounded-xl bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-700 dark:text-neutral-300 font-semibold text-sm flex items-center gap-2 transition-all shadow-sm"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-primary-6000" : ""}`} />
-            <span>Refresh Live Data</span>
+            <span>{t("receptionistRefresh")}</span>
           </button>
           <Link
             href="/checkin"
             className="px-5 py-2.5 rounded-xl bg-primary-6000 hover:bg-primary-700 text-white font-bold text-sm flex items-center gap-2 shadow-md shadow-primary-6000/25 transition-all"
           >
             <Users className="w-4 h-4" />
-            <span>Check-In / Check-Out Desk</span>
+            <span>{t("receptionistCheckInOutDesk")}</span>
           </Link>
         </div>
       </div>
@@ -226,7 +231,7 @@ export default function ReceptionistDashboard() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">Available Rooms</span>
+            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">{t("receptionistAvailableRooms")}</span>
             <div className="p-2.5 rounded-2xl bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-400">
               <CalendarCheck className="w-5 h-5" />
             </div>
@@ -235,13 +240,13 @@ export default function ReceptionistDashboard() {
             {roomsSummary.AVAILABLE} <span className="text-sm font-normal text-neutral-400">/ {roomsSummary.total}</span>
           </div>
           <p className="text-xs text-green-600 dark:text-green-400 font-semibold mt-2 flex items-center gap-1">
-            <CheckCircle2 className="w-3.5 h-3.5" /> Ready for immediate check-in
+            <CheckCircle2 className="w-3.5 h-3.5" /> {t("receptionistReadyForCheckIn")}
           </p>
         </div>
 
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">Today's Arrivals</span>
+            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">{t("receptionistTodayArrivals")}</span>
             <div className="p-2.5 rounded-2xl bg-blue-100 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400">
               <Users className="w-5 h-5" />
             </div>
@@ -250,13 +255,13 @@ export default function ReceptionistDashboard() {
             {arrivals.length}
           </div>
           <p className="text-xs text-blue-600 dark:text-blue-400 font-semibold mt-2 flex items-center gap-1">
-            <ArrowRight className="w-3.5 h-3.5" /> Confirmed expected arrivals
+            <ArrowRight className="w-3.5 h-3.5" /> {t("receptionistConfirmedArrivals")}
           </p>
         </div>
 
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">Today's Departures</span>
+            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">{t("receptionistTodayDepartures")}</span>
             <div className="p-2.5 rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-400">
               <CreditCard className="w-5 h-5" />
             </div>
@@ -265,13 +270,13 @@ export default function ReceptionistDashboard() {
             {departures.length}
           </div>
           <p className="text-xs text-amber-600 dark:text-amber-400 font-semibold mt-2 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5" /> Currently checked in
+            <Clock className="w-3.5 h-3.5" /> {t("receptionistCurrentlyCheckedIn")}
           </p>
         </div>
 
         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-6 rounded-3xl shadow-sm hover:shadow-md transition-shadow">
           <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">Housekeeping Status</span>
+            <span className="text-xs font-bold uppercase text-neutral-500 tracking-wider">{t("receptionistHousekeepingStatus")}</span>
             <div className="p-2.5 rounded-2xl bg-purple-100 text-purple-700 dark:bg-purple-950/40 dark:text-purple-400">
               <BedDouble className="w-5 h-5" />
             </div>
@@ -279,17 +284,17 @@ export default function ReceptionistDashboard() {
           <div className="flex items-center gap-4 mt-2">
             <div>
               <span className="text-2xl font-bold text-red-600 dark:text-red-400">{roomsSummary.DIRTY}</span>
-              <span className="text-[11px] text-neutral-500 block">Dirty</span>
+              <span className="text-[11px] text-neutral-500 block">{t("adminRoomsStatusDirty")}</span>
             </div>
             <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
             <div>
               <span className="text-2xl font-bold text-blue-600 dark:text-blue-400">{roomsSummary.IN_USE}</span>
-              <span className="text-[11px] text-neutral-500 block">In Use</span>
+              <span className="text-[11px] text-neutral-500 block">{t("adminRoomsStatusInUse")}</span>
             </div>
             <div className="h-8 w-px bg-neutral-200 dark:bg-neutral-700" />
             <div>
               <span className="text-2xl font-bold text-amber-600 dark:text-amber-400">{roomsSummary.MAINTENANCE}</span>
-              <span className="text-[11px] text-neutral-500 block">Maint.</span>
+              <span className="text-[11px] text-neutral-500 block">{t("adminRoomsStatusMaintenance")}</span>
             </div>
           </div>
         </div>
@@ -302,10 +307,10 @@ export default function ReceptionistDashboard() {
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-xl font-extrabold text-amber-900 dark:text-amber-400 flex items-center gap-2">
               <AlertTriangle className="w-5 h-5" />
-              <span>Pending Check-Out Requests</span>
+              <span>{t("receptionistPendingCheckout")}</span>
             </h3>
             <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200 text-xs font-bold animate-pulse">
-              {checkoutRequests.length} Request(s)
+              {t("receptionistRequestCount", { count: checkoutRequests.length })}
             </span>
           </div>
           
@@ -314,7 +319,7 @@ export default function ReceptionistDashboard() {
               <div key={req.id} className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 flex flex-col gap-3">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="font-bold text-neutral-900 dark:text-white">Room {req.room?.room_number}</span>
+                    <span className="font-bold text-neutral-900 dark:text-white">{t("kitchenRoom")} {req.room?.room_number}</span>
                     <span className="text-xs text-neutral-500 ml-2 block sm:inline">{req.user?.full_name || req.guest?.full_name}</span>
                   </div>
                   <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
@@ -322,12 +327,12 @@ export default function ReceptionistDashboard() {
                     req.checkout_step === "INSPECTING" ? "bg-blue-200 text-blue-900" :
                     "bg-green-200 text-green-900"
                   }`}>
-                    {req.checkout_step}
+                    {t(`receptionistCheckoutStep${req.checkout_step}`, { defaultValue: req.checkout_step })}
                   </span>
                 </div>
                 
                 <div className="text-xs text-neutral-500">
-                  Requested at: {new Date(req.checkout_requested_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                  {t("receptionistRequestedAt")}: {new Date(req.checkout_requested_at).toLocaleTimeString(formattingLocale, {hour: '2-digit', minute:'2-digit'})}
                 </div>
 
                 <div className="flex gap-2 mt-auto pt-2">
@@ -337,12 +342,12 @@ export default function ReceptionistDashboard() {
                       className="w-full text-xs font-bold bg-amber-600 hover:bg-amber-700 shadow-sm"
                       onClick={() => handleSendCleaner(req.id)}
                     >
-                      Báo nhân viên kiểm tra
+                      {t("receptionistSendCleaner")}
                     </ButtonPrimary>
                   )}
                   {req.checkout_step === "INSPECTING" && (
                     <button disabled className="w-full py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-500 rounded-xl text-xs font-bold">
-                      Đang đợi kiểm tra...
+                      {t("receptionistWaitingInspection")}
                     </button>
                   )}
                   {req.checkout_step === "INSPECTED" && (
@@ -350,7 +355,7 @@ export default function ReceptionistDashboard() {
                       href={`/checkin?bookingId=${req.id}&mode=checkout`}
                       className="w-full py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold text-center block"
                     >
-                      Tiến hành Checkout
+                      {t("receptionistProceedCheckout")}
                     </Link>
                   )}
                 </div>
@@ -367,11 +372,11 @@ export default function ReceptionistDashboard() {
         <div className="max-w-3xl mb-6">
           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary-400 mb-1">
             <Search className="w-4 h-4" />
-            <span>Room Availability Query Console (Truy Vấn Kiểm Tra Phòng Trống)</span>
+            <span>{t("receptionistAvailabilityConsole")}</span>
           </div>
-          <h2 className="text-2xl font-extrabold sm:text-3xl">Search & Check Live Room Vacancy</h2>
+          <h2 className="text-2xl font-extrabold sm:text-3xl">{t("receptionistAvailabilityTitle")}</h2>
           <p className="text-neutral-300 text-sm mt-1">
-            Verify real-time vacancy by date ranges and room classes for walk-in guests or phone inquiries.
+            {t("receptionistAvailabilitySubtitle")}
           </p>
         </div>
 
@@ -385,7 +390,7 @@ export default function ReceptionistDashboard() {
         <form onSubmit={handleSearchAvailableRooms} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-neutral-800/80 p-5 rounded-2xl border border-neutral-700/60 backdrop-blur-md">
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
-              Check-in Date
+              {t("receptionistCheckInDate")}
             </label>
             <Input
               type="date"
@@ -398,7 +403,7 @@ export default function ReceptionistDashboard() {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
-              Check-out Date
+              {t("receptionistCheckOutDate")}
             </label>
             <Input
               type="date"
@@ -411,17 +416,17 @@ export default function ReceptionistDashboard() {
 
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1.5">
-              Room Class / Type
+              {t("receptionistRoomType")}
             </label>
             <select
               value={selectedTypeId}
               onChange={(e) => setSelectedTypeId(e.target.value)}
               className="block w-full text-sm rounded-2xl border-neutral-700 focus:border-primary-500 focus:ring focus:ring-primary-500/30 bg-neutral-900 text-white h-11 px-3 font-medium"
             >
-              <option value="">All Room Classes</option>
+              <option value="">{t("receptionistAllRoomTypes")}</option>
               {roomTypes.map((t) => (
                 <option key={t.id} value={t.id}>
-                  {t.name} ({formatCurrency(t.base_price || (t as any).base_price_per_night || 0)}/night)
+                  {t.name} ({formatCurrency(t.base_price || (t as any).base_price_per_night || 0)} / {i18n.resolvedLanguage === "en" ? "night" : "đêm"})
                 </option>
               ))}
             </select>
@@ -434,7 +439,7 @@ export default function ReceptionistDashboard() {
               className="w-full h-11 text-sm font-bold shadow-lg shadow-primary-6000/25 flex items-center justify-center gap-2"
             >
               <Search className="w-4 h-4" />
-              <span>{searchingRooms ? "Checking..." : "Check Availability"}</span>
+              <span>{searchingRooms ? t("receptionistChecking") : t("receptionistCheckAvailability")}</span>
             </ButtonPrimary>
           </div>
         </form>
@@ -445,20 +450,20 @@ export default function ReceptionistDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h4 className="text-base font-bold flex items-center gap-2">
                 <CheckCircle2 className="w-5 h-5 text-green-400" />
-                <span>Found {availableRooms.length} Vacant Room(s) for ({checkInDate} &rarr; {checkOutDate})</span>
+                <span>{t("receptionistVacantRoomsFound", { count: availableRooms.length, checkIn: checkInDate, checkOut: checkOutDate })}</span>
               </h4>
               <button
                 type="button"
                 onClick={() => setAvailableRooms(null)}
                 className="text-xs text-neutral-400 hover:text-white underline"
               >
-                Clear Results
+                {t("receptionistClearResults")}
               </button>
             </div>
 
             {availableRooms.length === 0 ? (
               <div className="p-6 bg-neutral-800/50 rounded-2xl border border-dashed border-neutral-700 text-center text-neutral-400 text-sm">
-                No rooms are currently vacant matching your selected dates and room class. Try modifying the date range or selecting "All Room Classes".
+                {t("receptionistNoVacantRooms")}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[380px] overflow-y-auto pr-1">
@@ -466,17 +471,17 @@ export default function ReceptionistDashboard() {
                   <div key={room.id} className="p-4 rounded-2xl bg-neutral-800/90 border border-neutral-700/80 hover:border-primary-500/80 transition-all flex flex-col justify-between gap-3">
                     <div>
                       <div className="flex items-center justify-between">
-                        <span className="text-lg font-extrabold text-white">Room {room.room_number}</span>
+                        <span className="text-lg font-extrabold text-white">{t("kitchenRoom")} {room.room_number}</span>
                         <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-green-950 text-green-300 border border-green-700">
-                          {room.status}
+                          {t(`adminRoomsStatus${room.status === "IN_USE" ? "InUse" : room.status.charAt(0) + room.status.slice(1).toLowerCase()}`, { defaultValue: room.status })}
                         </span>
                       </div>
                       <div className="text-sm font-medium text-primary-300 mt-0.5">
                         {room.room_type?.name}
                       </div>
                       <div className="text-xs text-neutral-300 mt-2 flex items-center justify-between">
-                        <span>Floor {room.floor} &bull; {room.room_type?.max_occupancy || (room.room_type as any)?.max_guests || 2} Guests</span>
-                        <span className="font-bold text-white">{formatCurrency(room.room_type?.base_price || (room.room_type as any)?.base_price_per_night || 0)} / night</span>
+                        <span>{t("receptionistFloorGuests", { floor: room.floor, count: room.room_type?.max_occupancy || (room.room_type as any)?.max_guests || 2 })}</span>
+                        <span className="font-bold text-white">{t("adminRoomsPricePerNight", { price: formatCurrency(room.room_type?.base_price || (room.room_type as any)?.base_price_per_night || 0) })}</span>
                       </div>
                     </div>
 
@@ -484,7 +489,7 @@ export default function ReceptionistDashboard() {
                       href={`/checkin?roomId=${room.id}&checkIn=${checkInDate}&checkOut=${checkOutDate}`}
                       className="w-full py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-xl text-xs font-bold text-center block transition-colors shadow-sm"
                     >
-                      ⚡ Instant Walk-In Check-In
+                      ⚡ {t("receptionistWalkInCheckIn")}
                     </Link>
                   </div>
                 ))}
@@ -502,19 +507,19 @@ export default function ReceptionistDashboard() {
             <div>
               <h3 className="text-xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-2">
                 <Users className="w-5 h-5 text-blue-600" />
-                <span>Today's Arriving Guests</span>
+                <span>{t("receptionistArrivingGuests")}</span>
               </h3>
-              <p className="text-xs text-neutral-500 mt-0.5">Confirmed bookings ready for check-in</p>
+              <p className="text-xs text-neutral-500 mt-0.5">{t("receptionistArrivalsSubtitle")}</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 text-xs font-bold">
-              {arrivals.length} Expected
+              {t("receptionistExpectedCount", { count: arrivals.length })}
             </span>
           </div>
 
           <div className="space-y-3 flex-grow overflow-y-auto max-h-[420px] pr-1">
             {arrivals.length === 0 ? (
               <div className="py-12 text-center text-neutral-400 text-sm border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                No confirmed arriving bookings for today.
+                {t("receptionistNoArrivals")}
               </div>
             ) : (
               arrivals.map((b) => (
@@ -522,15 +527,15 @@ export default function ReceptionistDashboard() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-neutral-900 dark:text-white">
-                        Room {b.room?.room_number} ({b.room?.room_type?.name})
+                        {t("kitchenRoom")} {b.room?.room_number} ({b.room?.room_type?.name})
                       </span>
                     </div>
                     <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2 mt-1 truncate">
                       <User className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
-                      <span>{b.user?.full_name || b.guest?.full_name || "Guest"}</span>
+                      <span>{b.user?.full_name || b.guest?.full_name || t("receptionistGuest")}</span>
                     </div>
                     <div className="text-[11px] text-neutral-400 flex items-center gap-3 mt-1">
-                      <span>Nights: {b.check_in_date} &rarr; {b.check_out_date}</span>
+                      <span>{t("receptionistStayDates")}: {b.check_in_date} &rarr; {b.check_out_date}</span>
                     </div>
                   </div>
 
@@ -538,7 +543,7 @@ export default function ReceptionistDashboard() {
                     href={`/checkin?bookingId=${b.id}`}
                     className="flex-shrink-0 px-3.5 py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1"
                   >
-                    <span>Check-In</span>
+                    <span>{t("receptionistCheckIn")}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -553,19 +558,19 @@ export default function ReceptionistDashboard() {
             <div>
               <h3 className="text-xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-2">
                 <CreditCard className="w-5 h-5 text-amber-600" />
-                <span>Today's Departing Guests</span>
+                <span>{t("receptionistDepartingGuests")}</span>
               </h3>
-              <p className="text-xs text-neutral-500 mt-0.5">Checked-in rooms scheduled for check-out</p>
+              <p className="text-xs text-neutral-500 mt-0.5">{t("receptionistDeparturesSubtitle")}</p>
             </div>
             <span className="px-3 py-1 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-xs font-bold">
-              {departures.length} Departures
+              {t("receptionistDepartureCount", { count: departures.length })}
             </span>
           </div>
 
           <div className="space-y-3 flex-grow overflow-y-auto max-h-[420px] pr-1">
             {departures.length === 0 ? (
               <div className="py-12 text-center text-neutral-400 text-sm border border-dashed border-neutral-200 dark:border-neutral-800 rounded-2xl">
-                No currently checked-in rooms scheduled for check-out today.
+                {t("receptionistNoDepartures")}
               </div>
             ) : (
               departures.map((b) => (
@@ -573,15 +578,15 @@ export default function ReceptionistDashboard() {
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-bold text-sm text-neutral-900 dark:text-white">
-                        Room {b.room?.room_number} ({b.room?.room_type?.name})
+                        {t("kitchenRoom")} {b.room?.room_number} ({b.room?.room_type?.name})
                       </span>
                     </div>
                     <div className="text-xs font-medium text-neutral-700 dark:text-neutral-300 flex items-center gap-2 mt-1 truncate">
                       <User className="w-3.5 h-3.5 text-neutral-400 flex-shrink-0" />
-                      <span>{b.user?.full_name || b.guest?.full_name || "Guest"}</span>
+                      <span>{b.user?.full_name || b.guest?.full_name || t("receptionistGuest")}</span>
                     </div>
                     <div className="text-xs font-bold text-primary-6000 dark:text-primary-400 mt-1">
-                      Balance: {formatCurrency(b.total_amount)}
+                      {t("receptionistBalance")}: {formatCurrency(b.total_amount)}
                     </div>
                   </div>
 
@@ -589,7 +594,7 @@ export default function ReceptionistDashboard() {
                     href={`/checkin?bookingId=${b.id}&mode=checkout`}
                     className="flex-shrink-0 px-3.5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1"
                   >
-                    <span>Check-Out</span>
+                    <span>{t("receptionistCheckOut")}</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </Link>
                 </div>
@@ -609,8 +614,8 @@ export default function ReceptionistDashboard() {
             <Users className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-extrabold text-base text-neutral-900 dark:text-white">Check-In / Check-Out Desk</h4>
-            <p className="text-xs text-neutral-500 mt-0.5">Verify ID (AI OCR), assign rooms & settle payment</p>
+            <h4 className="font-extrabold text-base text-neutral-900 dark:text-white">{t("receptionistCheckInOutDesk")}</h4>
+            <p className="text-xs text-neutral-500 mt-0.5">{t("receptionistCheckInOutCardDesc")}</p>
           </div>
         </Link>
 
@@ -622,8 +627,8 @@ export default function ReceptionistDashboard() {
             <Calendar className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-extrabold text-base text-neutral-900 dark:text-white">All Bookings & Invoices</h4>
-            <p className="text-xs text-neutral-500 mt-0.5">Filter all reservations, print invoices & search records</p>
+            <h4 className="font-extrabold text-base text-neutral-900 dark:text-white">{t("receptionistBookingsInvoices")}</h4>
+            <p className="text-xs text-neutral-500 mt-0.5">{t("receptionistBookingsInvoicesDesc")}</p>
           </div>
         </Link>
 
@@ -635,8 +640,8 @@ export default function ReceptionistDashboard() {
             <ShieldCheck className="w-6 h-6" />
           </div>
           <div>
-            <h4 className="font-extrabold text-base text-neutral-900 dark:text-white">Housekeeping Grid & Override</h4>
-            <p className="text-xs text-neutral-500 mt-0.5">Monitor room cleanliness & perform emergency turnover</p>
+            <h4 className="font-extrabold text-base text-neutral-900 dark:text-white">{t("receptionistHousekeepingGrid")}</h4>
+            <p className="text-xs text-neutral-500 mt-0.5">{t("receptionistHousekeepingGridDesc")}</p>
           </div>
         </Link>
       </div>
@@ -645,14 +650,14 @@ export default function ReceptionistDashboard() {
       <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 p-6 rounded-2xl shadow-sm">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
           <div>
-            <h3 className="text-xl font-bold text-neutral-900 dark:text-white">Room Status & Emergency Override</h3>
+            <h3 className="text-xl font-bold text-neutral-900 dark:text-white">{t("receptionistOverrideTitle")}</h3>
             <p className="text-sm text-neutral-500 mt-1">
-              Monitor live room conditions and manually override status for emergencies or immediate housekeeping needs.
+              {t("receptionistOverrideSubtitle")}
             </p>
           </div>
           <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-red-50 text-red-700 dark:bg-red-950/40 dark:text-red-300 border border-red-200 dark:border-red-800">
             <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
-            Receptionist Override Active
+            {t("receptionistOverrideActive")}
           </span>
         </div>
 
@@ -661,7 +666,7 @@ export default function ReceptionistDashboard() {
             <div key={room.id} className="p-4 rounded-xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50/50 dark:bg-neutral-800/50 flex flex-col justify-between">
               <div>
                 <div className="flex justify-between items-start mb-2">
-                  <span className="font-bold text-base">Room {room.room_number}</span>
+                  <span className="font-bold text-base">{t("kitchenRoom")} {room.room_number}</span>
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${
                     room.status === "AVAILABLE" ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300" :
                     room.status === "IN_USE" ? "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300" :
@@ -669,26 +674,26 @@ export default function ReceptionistDashboard() {
                     room.status === "CLEANING" ? "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300" :
                     "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300"
                   }`}>
-                    {room.status}
+                    {t(`adminRoomsStatus${room.status === "IN_USE" ? "InUse" : room.status.charAt(0) + room.status.slice(1).toLowerCase()}`, { defaultValue: room.status })}
                   </span>
                 </div>
                 <p className="text-xs text-neutral-500 dark:text-neutral-400 mb-3">
-                  {room.room_type?.name || `Floor ${room.floor}`}
+                  {room.room_type?.name || t("adminRoomsFloorValue", { floor: room.floor })}
                 </p>
               </div>
 
               <div className="mt-3 pt-3 border-t border-neutral-200 dark:border-neutral-700">
-                <label className="block text-xs font-semibold text-neutral-500 mb-1">Override Status:</label>
+                <label className="block text-xs font-semibold text-neutral-500 mb-1">{t("receptionistOverrideStatus")}:</label>
                 <select
                   value={room.status}
                   onChange={(e) => handleOverrideStatus(room.id, e.target.value)}
                   className="block w-full text-xs rounded-lg border-neutral-300 focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 bg-white dark:border-neutral-600 dark:bg-neutral-900 dark:text-white py-1.5"
                 >
-                  <option value="AVAILABLE">AVAILABLE (Ready)</option>
-                  <option value="IN_USE">IN_USE (Occupied)</option>
-                  <option value="DIRTY">DIRTY (Needs clean)</option>
-                  <option value="CLEANING">CLEANING (In progress)</option>
-                  <option value="MAINTENANCE">MAINTENANCE (Emergency)</option>
+                  <option value="AVAILABLE">{t("adminRoomsStatusAvailable")}</option>
+                  <option value="IN_USE">{t("adminRoomsStatusInUse")}</option>
+                  <option value="DIRTY">{t("adminRoomsStatusDirty")}</option>
+                  <option value="CLEANING">{t("adminRoomsStatusCleaning")}</option>
+                  <option value="MAINTENANCE">{t("adminRoomsStatusMaintenance")}</option>
                 </select>
               </div>
             </div>

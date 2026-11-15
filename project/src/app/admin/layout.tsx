@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "react-i18next";
 import { useAuth } from "@/lib/auth-context";
 import AdminProtectedRoute from "@/components/AdminProtectedRoute";
 import { Route } from "@/routers/types";
@@ -20,6 +21,7 @@ import {
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { logout } = useAuth();
+  const { t } = useTranslation();
 
   const isCreateRoute = pathname?.startsWith("/admin/incidents/create") || pathname?.startsWith("/admin/lost-found/create");
 
@@ -28,12 +30,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   const menuItems = [
-    { name: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-    { name: "Hotels & Rooms", href: "/admin/rooms", icon: BedDouble },
-    { name: "Experiences", href: "/admin/experiences", icon: Compass },
-    { name: "Bookings", href: "/admin/bookings", icon: CalendarCheck },
-    { name: "Payments", href: "/admin/payments", icon: CreditCard },
-    { name: "User Management", href: "/admin/users", icon: Users },
+    { name: t("adminNavDashboard"), href: "/admin/dashboard", icon: LayoutDashboard },
+    { name: t("adminNavHotelsRooms"), href: "/admin/rooms", icon: BedDouble },
+    { name: t("adminNavExperiences"), href: "/admin/experiences", icon: Compass },
+    { name: t("adminNavBookings"), href: "/admin/bookings", icon: CalendarCheck },
+    { name: t("adminNavPayments"), href: "/admin/payments", icon: CreditCard },
+    { name: t("adminNavUserManagement"), href: "/admin/users", icon: Users },
   ];
 
   return (
@@ -47,10 +49,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="p-6 border-b border-neutral-100 dark:border-neutral-700">
             <h2 className="text-xl font-extrabold text-primary-6000 flex items-center space-x-2">
               <span className="bg-primary-6000 text-white p-1.5 rounded-lg text-sm">H</span>
-              <span>HotelOS Admin</span>
+              <span>{t("adminNavBrand")}</span>
             </h2>
             <p className="text-xs text-neutral-400 mt-1 font-semibold tracking-wider uppercase">
-              Management Portal
+              {t("adminNavPortal")}
             </p>
           </div>
 
@@ -84,14 +86,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               className="flex items-center px-4 py-2.5 text-sm font-medium text-neutral-600 dark:text-neutral-300 rounded-xl hover:bg-neutral-100 dark:hover:bg-neutral-700/50 transition-colors"
             >
               <Home className="w-4 h-4 mr-3 text-neutral-400" />
-              Trang chủ
+              {t("adminNavHome")}
             </Link>
             <button 
               onClick={logout}
               className="w-full flex items-center px-4 py-2.5 text-sm font-medium text-red-600 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
             >
               <LogOut className="w-4 h-4 mr-3 text-red-500" />
-              Đăng xuất
+              {t("adminNavLogout")}
             </button>
           </div>
 

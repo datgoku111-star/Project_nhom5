@@ -1,3 +1,5 @@
+"use client";
+
 import React, { FC } from "react";
 import { DEMO_STAY_LISTINGS } from "@/data/listings";
 import { StayDataType } from "@/data/types";
@@ -8,6 +10,7 @@ import SaleOffBadge from "@/components/SaleOffBadge";
 import Badge from "@/shared/Badge";
 import Link from "next/link";
 import GallerySlider from "./GallerySlider";
+import { useTranslation } from "react-i18next";
 
 export interface StayCardProps {
   className?: string;
@@ -23,6 +26,7 @@ const StayCard: FC<StayCardProps> = ({
   data = DEMO_DATA,
 }) => {
   const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
   const {
     galleryImgs,
     listingCategory,
@@ -73,7 +77,9 @@ const StayCard: FC<StayCardProps> = ({
                   ? "bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300" 
                   : "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300"
               }`}>
-                {availableRooms > 0 ? `Còn ${availableRooms} phòng` : "Hết phòng"}
+                {availableRooms > 0
+                  ? t("listingRoomsRemaining", { count: availableRooms })
+                  : t("listingSoldOut")}
               </span>
             )}
           </div>
@@ -119,7 +125,7 @@ const StayCard: FC<StayCardProps> = ({
             {` `}
             {size === "default" && (
               <span className="text-sm text-neutral-500 dark:text-neutral-400 font-normal">
-                /night
+                {t("listingPerNight")}
               </span>
             )}
           </span>

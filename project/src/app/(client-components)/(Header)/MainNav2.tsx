@@ -49,28 +49,28 @@ const MainNav2: FC<MainNav2Props> = ({ className = "" }) => {
                 href={"/dashboard/receptionist" as Route<string>}
                 className="self-center px-4 py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-full inline-flex items-center text-sm font-semibold mr-2 shadow-sm transition-all"
               >
-                🏢 Receptionist Portal
+                🏢 {t("headerReceptionistPortal")}
               </Link>
             ) : user?.role === "ADMIN" ? (
               <Link
                 href={"/admin/dashboard" as Route<string>}
                 className="self-center px-4 py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-full inline-flex items-center text-sm font-semibold mr-2 shadow-sm transition-all"
               >
-                ⚡ Admin Dashboard
+                ⚡ {t("headerAdminDashboard")}
               </Link>
             ) : user?.role === "HOUSEKEEPING" ? (
               <Link
                 href={"/housekeeping" as Route<string>}
                 className="self-center px-4 py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-full inline-flex items-center text-sm font-semibold mr-2 shadow-sm transition-all"
               >
-                🧹 Housekeeping Grid
+                🧹 {t("headerHousekeepingGrid")}
               </Link>
             ) : user?.role === "KITCHEN" ? (
               <Link
                 href={"/orders" as Route<string>}
                 className="self-center px-4 py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-full inline-flex items-center text-sm font-semibold mr-2 shadow-sm transition-all"
               >
-                🍳 Kitchen Orders
+                🍳 {t("headerKitchenOrders")}
               </Link>
             ) : (
               <Link

@@ -8,6 +8,7 @@ import {
   UserIcon,
   RocketLaunchIcon
 } from "@heroicons/react/24/solid";
+import { useTranslation } from "react-i18next";
 
 interface Message {
   role: "user" | "assistant";
@@ -15,11 +16,13 @@ interface Message {
 }
 
 export default function ChatboxAI() {
+  const { t, i18n } = useTranslation();
+  const language = i18n.resolvedLanguage === "en" ? "en" : "vn";
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: "assistant",
-      text: "Dạ, em chào anh/chị. Em là trợ lý ảo của Fis. Em có thể hỗ trợ giải đáp các thông tin về giá phòng, giờ nhận/trả phòng, các tiện ích hoặc chính sách của khách sạn. Anh/chị cần em giúp gì ạ?",
+      text: t("chatGreeting"),
     },
   ]);
   const [inputVal, setInputVal] = useState("");
@@ -44,6 +47,14 @@ export default function ChatboxAI() {
     }
   }, [messages, isOpen, loading, showForm]);
 
+  useEffect(() => {
+    setMessages((currentMessages) =>
+      currentMessages.length === 1 && currentMessages[0].role === "assistant"
+        ? [{ role: "assistant", text: t("chatGreeting") }]
+        : currentMessages,
+    );
+  }, [language, t]);
+
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputVal.trim() || loading || showForm) return;
@@ -66,6 +77,7 @@ export default function ChatboxAI() {
         body: JSON.stringify({
           message: userText,
           history: history.slice(0, -1), // Exclude the greeting
+          language,
         }),
       });
 
@@ -84,7 +96,7 @@ export default function ChatboxAI() {
         ...prev,
         {
           role: "assistant",
-          text: "Dạ, hệ thống đang gặp gián đoạn kết nối. Anh/chị vui lòng thử lại sau giây lát hoặc liên hệ trực tiếp với chúng em qua hotline ạ.",
+          text: t("chatConnectionError"),
         },
       ]);
     } finally {
@@ -95,7 +107,7 @@ export default function ChatboxAI() {
   const handleFormSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !phone) {
-      alert("Vui lòng điền đầy đủ họ tên và số điện thoại.");
+      alert(t("chatRequiredContact"));
       return;
     }
     setFormSubmitted(true);
@@ -108,6 +120,7 @@ export default function ChatboxAI() {
           name,
           phone,
           requestDetails: requestDesc,
+          language,
         }),
       });
 
@@ -119,7 +132,7 @@ export default function ChatboxAI() {
         ...prev,
         {
           role: "assistant",
-          text: `Dạ, thông tin của anh/chị (${name} - ${phone}) đã được gửi trực tiếp tới bộ phận Chăm sóc khách hàng. Nhân viên tư vấn sẽ liên hệ lại hỗ trợ anh/chị ngay lập tức ạ!`,
+          text: t("chatRequestSuccess", { name, phone }),
         },
       ]);
       setShowForm(false);
@@ -128,7 +141,7 @@ export default function ChatboxAI() {
       setRequestDesc("");
     } catch (err) {
       console.error("Form submit error:", err);
-      alert("Dạ, hệ thống gửi yêu cầu đang bận. Anh/chị vui lòng thử lại sau giây lát hoặc liên hệ trực tiếp với chúng em qua hotline ạ.");
+      alert(t("chatRequestError"));
     } finally {
       setFormSubmitted(false);
     }
@@ -152,7 +165,7 @@ export default function ChatboxAI() {
               </div>
               <div>
                 <h4 className="font-bold text-sm leading-tight">Fis Assistant</h4>
-                <span className="text-xs text-white/80">Trợ lý ảo 24/7</span>
+                <span className="text-xs text-white/80">{t("chatAssistantSubtitle")}</span>
               </div>
             </div>
             <button 
@@ -208,22 +221,22 @@ export default function ChatboxAI() {
               <div className="p-4 bg-white dark:bg-neutral-800 rounded-2xl border border-blue-100 dark:border-blue-900/30 shadow-md space-y-3">
                 <h5 className="font-bold text-xs uppercase text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
                   <span className="w-2 h-2 rounded-full bg-blue-600 animate-pulse"></span>
-                  Gửi yêu cầu hỗ trợ (CSKH)
+                  {t("chatSupportRequest")}
                 </h5>
                 <form onSubmit={handleFormSubmit} className="space-y-2.5">
                   <div>
-                    <label className="block text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase mb-1">Họ và tên *</label>
+                    <label className="block text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase mb-1">{t("chatFullName")}</label>
                     <input 
                       type="text" 
                       required
-                      placeholder="Nguyễn Văn A" 
+                      placeholder={t("chatFullNamePlaceholder")}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       className="w-full text-xs px-3 py-2 border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 rounded-xl focus:outline-none focus:border-blue-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase mb-1">Số điện thoại *</label>
+                    <label className="block text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase mb-1">{t("chatPhone")}</label>
                     <input 
                       type="tel" 
                       required
@@ -234,9 +247,9 @@ export default function ChatboxAI() {
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase mb-1">Yêu cầu của bạn</label>
+                    <label className="block text-[10px] font-bold text-neutral-400 dark:text-neutral-500 uppercase mb-1">{t("chatYourRequest")}</label>
                     <textarea 
-                      placeholder="Tôi muốn đặt phòng Deluxe hướng biển ngày mai..." 
+                      placeholder={t("chatRequestPlaceholder")}
                       value={requestDesc}
                       onChange={(e) => setRequestDesc(e.target.value)}
                       rows={2}
@@ -249,14 +262,14 @@ export default function ChatboxAI() {
                       disabled={formSubmitted}
                       className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
                     >
-                      {formSubmitted ? "Đang gửi..." : "Gửi thông tin"}
+                      {formSubmitted ? t("chatSubmitting") : t("chatSubmit")}
                     </button>
                     <button 
                       type="button"
                       onClick={() => setShowForm(false)}
                       className="px-3 py-2 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-700 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-300 rounded-xl text-xs font-semibold transition-all"
                     >
-                      Bỏ qua
+                      {t("chatSkip")}
                     </button>
                   </div>
                 </form>
@@ -275,7 +288,7 @@ export default function ChatboxAI() {
               type="text" 
               value={inputVal}
               onChange={(e) => setInputVal(e.target.value)}
-              placeholder={showForm ? "Vui lòng điền form phía trên..." : "Nhập câu hỏi của bạn..."}
+              placeholder={showForm ? t("chatCompleteForm") : t("chatInputPlaceholder")}
               disabled={loading || showForm}
               className="flex-1 text-sm px-4 py-2.5 border border-neutral-200 dark:border-neutral-700 rounded-2xl bg-neutral-50 dark:bg-neutral-950/20 focus:outline-none focus:border-blue-500 text-neutral-800 dark:text-neutral-100 placeholder-neutral-400"
             />
@@ -305,7 +318,7 @@ export default function ChatboxAI() {
         {/* Tooltip on hover */}
         {!isOpen && (
           <span className="absolute right-16 bg-neutral-900 text-white text-xs px-2.5 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all duration-200 whitespace-nowrap shadow-md pointer-events-none">
-            Trợ giúp trực tuyến 24/7
+            {t("chatOnlineHelp")}
           </span>
         )}
       </button>

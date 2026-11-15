@@ -151,6 +151,19 @@ const DEMO_CATS_2: TaxonomyType[] = [
 
 function PageHome() {
   const { t } = useTranslation();
+  const suggestionNames = [
+    t("homeSuggestionCold"),
+    t("homeSuggestionFloating"),
+    t("homeSuggestionLuxuryHouse"),
+    t("homeSuggestionDeepForest"),
+    t("homeSuggestionLuxuryHouse"),
+    t("homeSuggestionLuxuryHouse"),
+    t("homeSuggestionDeepForest"),
+  ];
+  const suggestionCategories = DEMO_CATS_2.map((category, index) => ({
+    ...category,
+    name: suggestionNames[index],
+  }));
 
   return (
     <main className="nc-PageHome relative overflow-hidden">
@@ -168,8 +181,8 @@ function PageHome() {
 
         <SectionGridFeaturePlaces 
           cardType="card2" 
-          heading="Các hạng phòng nghỉ nổi bật" 
-          subHeading="Khám phá các lựa chọn phòng nghỉ sang trọng tại Fis Hotel"
+          heading={t("homeFeaturedRoomsHeading")}
+          subHeading={t("homeFeaturedRoomsSubHeading")}
         />
 
         <SectionHowItWork />
@@ -177,7 +190,7 @@ function PageHome() {
         <div className="relative py-16">
           <BackgroundSection className="bg-orange-50 dark:bg-black/20" />
           <SectionSliderNewCategories
-            categories={DEMO_CATS_2}
+            categories={suggestionCategories}
             categoryCardType="card4"
             itemPerRow={4}
             heading={t("homeSuggestionHeading")}

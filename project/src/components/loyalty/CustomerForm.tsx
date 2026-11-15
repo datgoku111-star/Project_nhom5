@@ -6,8 +6,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { CustomerProfileSchema, CustomerProfileInput } from "@/types/customer-loyalty";
 import { Route } from "@/routers/types";
+import { useTranslation } from "react-i18next";
 
 export default function CustomerForm() {
+  const { t } = useTranslation();
   const router = useRouter();
   const [submitError, setSubmitError] = useState<string>("");
 
@@ -37,7 +39,7 @@ export default function CustomerForm() {
 
       if (!res.ok) {
         const errorData = await res.json();
-        setSubmitError(errorData.error || "Đã xảy ra lỗi khi tạo hồ sơ khách hàng.");
+        setSubmitError(errorData.error || t("adminCustomersCreateError"));
         return;
       }
 
@@ -45,7 +47,7 @@ export default function CustomerForm() {
       router.push("/admin/customers" as Route);
       router.refresh();
     } catch (error) {
-      setSubmitError("Lỗi kết nối máy chủ. Vui lòng thử lại sau.");
+      setSubmitError(t("adminCustomersConnectionError"));
     }
   };
 
@@ -60,48 +62,48 @@ export default function CustomerForm() {
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         {/* Tên khách hàng */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Họ và tên *</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("adminCustomersNameField")} *</label>
           <input
             type="text"
             {...register("full_name")}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
-            placeholder="Ví dụ: Nguyễn Văn A"
+            placeholder={t("adminCustomersNamePlaceholder")}
           />
-          {errors.full_name && <p className="mt-1 text-sm text-red-500">{errors.full_name.message}</p>}
+          {errors.full_name && <p className="mt-1 text-sm text-red-500">{t("adminCustomersNameValidation")}</p>}
         </div>
 
         {/* Số điện thoại */}
         <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Số điện thoại</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("adminCustomersPhoneField")}</label>
           <input
             type="text"
             {...register("phone")}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
-            placeholder="Ví dụ: 0912345678"
+            placeholder={t("adminCustomersPhonePlaceholder")}
           />
-          {errors.phone && <p className="mt-1 text-sm text-red-500">{errors.phone.message}</p>}
+          {errors.phone && <p className="mt-1 text-sm text-red-500">{t("adminCustomersPhoneValidation")}</p>}
         </div>
 
         {/* Email */}
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Địa chỉ Email</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("adminCustomersEmailField")}</label>
           <input
             type="text"
             {...register("email")}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
             placeholder="example@gmail.com"
           />
-          {errors.email && <p className="mt-1 text-sm text-red-500">{errors.email.message}</p>}
+          {errors.email && <p className="mt-1 text-sm text-red-500">{t("adminCustomersEmailValidation")}</p>}
         </div>
 
         {/* Ghi chú sở thích */}
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Sở thích & Lưu ý của khách hàng</label>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">{t("adminCustomersNotesField")}</label>
           <textarea
             {...register("preferences_notes")}
             rows={3}
             className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-900 dark:border-gray-700 sm:text-sm"
-            placeholder="Ví dụ: Thích phòng tầng cao, dị ứng lông thú, yêu cầu nệm mềm..."
+            placeholder={t("adminCustomersNotesPlaceholder")}
           />
         </div>
       </div>
@@ -112,14 +114,14 @@ export default function CustomerForm() {
           onClick={() => router.push("/admin/customers" as Route)}
           className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm hover:bg-gray-50 focus:outline-none dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
         >
-          Hủy
+          {t("adminCustomersCancel")}
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
           className="inline-flex justify-center px-4 py-2 text-sm font-medium text-white bg-indigo-600 border border-transparent rounded-md shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
         >
-          {isSubmitting ? "Đang lưu..." : "Tạo khách hàng"}
+          {isSubmitting ? t("adminCustomersSaving") : t("adminCustomersCreate")}
         </button>
       </div>
     </form>

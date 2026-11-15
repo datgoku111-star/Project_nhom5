@@ -1,6 +1,7 @@
 "use client";
 
 import React, { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface BtnLikeIconProps {
   className?: string;
@@ -14,6 +15,7 @@ const BtnLikeIcon: FC<BtnLikeIconProps> = ({
   isLiked = false,
 }) => {
   const [likedState, setLikedState] = useState(isLiked);
+  const { t } = useTranslation();
 
   return (
     <div
@@ -21,7 +23,7 @@ const BtnLikeIcon: FC<BtnLikeIconProps> = ({
         likedState ? "nc-BtnLikeIcon--liked" : ""
       }  ${colorClass} ${className}`}
       data-nc-id="BtnLikeIcon"
-      title="Save"
+      title={likedState ? t("listingRemoveFromSaved") : t("listingSave")}
       onClick={() => setLikedState(!likedState)}
     >
       <svg

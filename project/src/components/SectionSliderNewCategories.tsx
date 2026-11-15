@@ -12,6 +12,7 @@ import PrevBtn from "./PrevBtn";
 import NextBtn from "./NextBtn";
 import { variants } from "@/utils/animationVariants";
 import { useWindowSize } from "react-use";
+import { useTranslation } from "react-i18next";
 
 export interface SectionSliderNewCategoriesProps {
   className?: string;
@@ -100,15 +101,30 @@ const DEMO_CATS: TaxonomyType[] = [
 ];
 
 const SectionSliderNewCategories: FC<SectionSliderNewCategoriesProps> = ({
-  heading = "Suggestions for discovery",
-  subHeading = "Popular places to recommends for you",
+  heading,
+  subHeading,
   className = "",
   itemClassName = "",
-  categories = DEMO_CATS,
+  categories: providedCategories,
   itemPerRow = 5,
   categoryCardType = "card3",
   sliderStyle = "style1",
 }) => {
+  const { t } = useTranslation();
+  const defaultCategoryNames: Record<string, string> = {
+    "Nature House": t("homeCategoryNatureHouse"),
+    "Wooden house": t("homeCategoryWoodenHouse"),
+    Houseboat: t("homeCategoryHouseboat"),
+    "Farm House": t("homeCategoryFarmHouse"),
+    "Dome House": t("homeCategoryDomeHouse"),
+    "Wooden Dome": t("homeCategoryWoodenDome"),
+  };
+  const categories = providedCategories ?? DEMO_CATS.map((category) => ({
+    ...category,
+    name: defaultCategoryNames[category.name] || category.name,
+  }));
+  const resolvedHeading = heading ?? t("homeDiscoveryHeading");
+  const resolvedSubHeading = subHeading ?? t("homeDiscoverySubHeading");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [direction, setDirection] = useState(0);
   const [numberOfItems, setNumberOfitem] = useState(0);
@@ -171,8 +187,8 @@ const SectionSliderNewCategories: FC<SectionSliderNewCategoriesProps> = ({
 
   return (
     <div className={`nc-SectionSliderNewCategories ${className}`}>
-      <Heading desc={subHeading} isCenter={sliderStyle === "style2"}>
-        {heading}
+      <Heading desc={resolvedSubHeading} isCenter={sliderStyle === "style2"}>
+        {resolvedHeading}
       </Heading>
       <MotionConfig
         transition={{

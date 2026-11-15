@@ -1,3 +1,5 @@
+"use client";
+
 import React, { FC } from "react";
 import GallerySlider from "@/components/GallerySlider";
 import { DEMO_EXPERIENCES_LISTINGS } from "@/data/listings";
@@ -9,6 +11,7 @@ import SaleOffBadge from "@/components/SaleOffBadge";
 import Badge from "@/shared/Badge";
 import Link from "next/link";
 import { MapPinIcon } from "@heroicons/react/24/outline";
+import { useTranslation } from "react-i18next";
 
 export interface ExperiencesCardProps {
   className?: string;
@@ -26,6 +29,7 @@ const ExperiencesCard: FC<ExperiencesCardProps> = ({
   ratioClass = "aspect-w-3 aspect-h-3",
 }) => {
   const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
   const {
     galleryImgs,
     address,
@@ -86,7 +90,7 @@ const ExperiencesCard: FC<ExperiencesCardProps> = ({
             {` `}
             {size === "default" && (
               <span className="text-sm text-neutral-500 dark:text-neutral-400 font-normal">
-                /person
+                {t("listingPerPerson")}
               </span>
             )}
           </span>

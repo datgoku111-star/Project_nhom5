@@ -1,4 +1,8 @@
+"use client";
+
 import React from 'react';
+import { useTranslation } from 'react-i18next';
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from '@/lib/locale';
 
 interface HistoryRecord {
   id: string;
@@ -10,8 +14,27 @@ interface HistoryRecord {
 }
 
 export default function IncidentTimeline({ history }: { history: HistoryRecord[] }) {
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+
+  const getStatusLabel = (status: string | null) => {
+    if (!status) return t('adminCommonUnknown');
+    const labels: Record<string, string> = {
+      REPORTED: t('adminIncidentStatusREPORTED'),
+      UNDER_REVIEW: t('adminIncidentStatusUNDER_REVIEW'),
+      CUSTOMER_NOTIFIED: t('adminIncidentStatusCUSTOMER_NOTIFIED'),
+      APPROVED_CHARGE: t('adminIncidentStatusAPPROVED_CHARGE'),
+      ADDED_TO_INVOICE: t('adminIncidentStatusADDED_TO_INVOICE'),
+      RESOLVED: t('adminIncidentStatusRESOLVED'),
+      CLOSED: t('adminIncidentStatusCLOSED'),
+      CANCELLED: t('adminIncidentStatusCANCELLED'),
+    };
+    return labels[status] ?? status;
+  };
+
   if (!history || history.length === 0) {
-    return <p className="text-gray-500 dark:text-gray-400">Chưa có lịch sử cập nhật.</p>;
+    return <p className="text-gray-500 dark:text-gray-400">{t('adminIncidentsNoHistory')}</p>;
   }
 
   return (
@@ -36,8 +59,8 @@ export default function IncidentTimeline({ history }: { history: HistoryRecord[]
                 <div className="flex min-w-0 flex-1 justify-between space-x-4 pt-1.5">
                   <div>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {event.action === 'CREATED' ? 'Khởi tạo sự cố với trạng thái' : 'Chuyển trạng thái sang'}{' '}
-                      <span className="font-medium text-gray-900 dark:text-white">{event.new_status}</span>
+                      {event.action === 'CREATED' ? t('adminIncidentsHistoryCreated') : t('adminIncidentsHistoryChanged')}{' '}
+                      <span className="font-medium text-gray-900 dark:text-white">{getStatusLabel(event.new_status)}</span>
                     </p>
                     {event.note && (
                       <p className="mt-2 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 p-3 rounded-md border border-gray-200 dark:border-gray-600">
@@ -47,7 +70,7 @@ export default function IncidentTimeline({ history }: { history: HistoryRecord[]
                   </div>
                   <div className="whitespace-nowrap text-right text-sm text-gray-500 dark:text-gray-400">
                     <time dateTime={event.created_at}>
-                      {new Date(event.created_at).toLocaleString('vi-VN')}
+                      {new Date(event.created_at).toLocaleString(formattingLocale)}
                     </time>
                   </div>
                 </div>

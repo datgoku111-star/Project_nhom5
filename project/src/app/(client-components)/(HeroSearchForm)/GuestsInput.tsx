@@ -9,6 +9,7 @@ import ButtonSubmit from "./ButtonSubmit";
 import { PathName } from "@/routers/types";
 import { UserPlusIcon } from "@heroicons/react/24/outline";
 import { GuestsObject } from "../type";
+import { useTranslation } from "react-i18next";
 
 export interface GuestsInputProps {
   fieldClassName?: string;
@@ -23,6 +24,7 @@ const GuestsInput: FC<GuestsInputProps> = ({
   buttonSubmitHref = "/listing-stay-map",
   hasButtonSubmit = true,
 }) => {
+  const { t } = useTranslation();
   const [guestAdultsInputValue, setGuestAdultsInputValue] = useState(2);
   const [guestChildrenInputValue, setGuestChildrenInputValue] = useState(1);
   const [guestInfantsInputValue, setGuestInfantsInputValue] = useState(1);
@@ -67,10 +69,12 @@ const GuestsInput: FC<GuestsInputProps> = ({
               </div>
               <div className="flex-grow">
                 <span className="block xl:text-lg font-semibold">
-                  {totalGuests || ""} Guests
+                  {totalGuests
+                    ? t("homeSearchGuestsCount", { count: totalGuests })
+                    : t("homeSearchAddGuests")}
                 </span>
                 <span className="block mt-1 text-sm text-neutral-400 leading-none font-light">
-                  {totalGuests ? "Guests" : "Add guests"}
+                  {totalGuests ? t("homeSearchGuests") : t("homeSearchAddGuests")}
                 </span>
               </div>
 
@@ -112,16 +116,16 @@ const GuestsInput: FC<GuestsInputProps> = ({
                 onChange={(value) => handleChangeData(value, "guestAdults")}
                 max={10}
                 min={1}
-                label="Adults"
-                desc="Ages 13 or above"
+                label={t("homeSearchAdults")}
+                desc={t("homeSearchAdultsDesc")}
               />
               <NcInputNumber
                 className="w-full mt-6"
                 defaultValue={guestChildrenInputValue}
                 onChange={(value) => handleChangeData(value, "guestChildren")}
                 max={4}
-                label="Children"
-                desc="Ages 2–12"
+                label={t("homeSearchChildren")}
+                desc={t("homeSearchChildrenDesc")}
               />
 
               <NcInputNumber
@@ -129,8 +133,8 @@ const GuestsInput: FC<GuestsInputProps> = ({
                 defaultValue={guestInfantsInputValue}
                 onChange={(value) => handleChangeData(value, "guestInfants")}
                 max={4}
-                label="Infants"
-                desc="Ages 0–2"
+                label={t("homeSearchInfants")}
+                desc={t("homeSearchInfantsDesc")}
               />
             </Popover.Panel>
           </Transition>

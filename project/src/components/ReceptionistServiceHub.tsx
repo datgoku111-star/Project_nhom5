@@ -28,8 +28,17 @@ import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
 import Input from "@/shared/Input";
 import type { Room, Service, ServiceOrder } from "@/types/hotel";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export default function ReceptionistServiceHub() {
+  const { t, i18n } = useTranslation();
+  const activeLanguage = isAppLanguage(i18n.resolvedLanguage)
+    ? i18n.resolvedLanguage
+    : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(activeLanguage);
+  const formatVnd = (amount: number) =>
+    new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND" }).format(amount);
   const [rooms, setRooms] = useState<any[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [activeOrders, setActiveOrders] = useState<any[]>([]);
@@ -206,7 +215,7 @@ export default function ReceptionistServiceHub() {
   const handleSubmitOrder = async (e?: any) => {
     if (e && e.preventDefault) e.preventDefault();
     if (orderItems.length === 0) {
-      alert("Vui lòng chọn ít nhất 1 món ăn hoặc dịch vụ!");
+      alert(t("serviceHubSelectItem"));
       return;
     }
 
@@ -245,10 +254,13 @@ export default function ReceptionistServiceHub() {
       };
 
       setActiveOrders((prev) => [newOrderUI, ...prev]);
-      alert(`✅ Đã tạo VNDơn dịch vụ & chuyển ngay xuống Nhà bếp cho Room ${selectedRoomForService?.room_number}! Tổng cộng: ${totalOrderAmount.toLocaleString("vi-VN")} VND.`);
+      alert(t("serviceHubOrderCreated", {
+        room: selectedRoomForService?.room_number,
+        total: formatVnd(totalOrderAmount),
+      }));
       setIsOrderModalOpen(false);
     } catch (err: any) {
-      alert("Lỗi tạo VNDơn dịch vụ: " + err.message);
+      alert(t("serviceHubOrderCreateError", { error: err.message }));
     }
   };
 
@@ -263,9 +275,9 @@ export default function ReceptionistServiceHub() {
       setActiveOrders((prev) =>
         prev.map((o) => (o.id === order.id ? { ...o, notes: updatedNotes } : o))
       );
-      alert("✅ Đã duyệt VNDơn & chuyển xuống Nhà bếp thành công! Bếp VNDã nhận VNDược thông báo reo chuông.");
+      alert(t("serviceHubForwarded"));
     } catch (err: any) {
-      alert("Lỗi duyệt VNDơn: " + err.message);
+      alert(t("serviceHubForwardError", { error: err.message }));
     }
   };
 
@@ -277,14 +289,14 @@ export default function ReceptionistServiceHub() {
         body: JSON.stringify({ status, status_text: statusText }),
       });
       if (res.ok) {
-        alert("✅ Đã cập nhật trạng thái thuê xe thành công!");
+        alert(t("serviceHubCarUpdated"));
         fetchAllData();
       } else {
-        alert("Cập nhật trạng thái thất bại.");
+        alert(t("serviceHubUpdateFailed"));
       }
     } catch (err) {
       console.error(err);
-      alert("Đã xảy ra lỗi.");
+      alert(t("serviceHubGenericError"));
     }
   };
   const handleCheckoutAction = async (bookingId: string, action: string) => {
@@ -295,14 +307,14 @@ export default function ReceptionistServiceHub() {
         body: JSON.stringify({ bookingId, action })
       });
       if (res.ok) {
-        alert("Housekeeping notified successfully!");
+        alert(t("serviceHubHousekeepingNotified"));
         fetchAllData();
       } else {
-        alert("Failed to notify housekeeping.");
+        alert(t("serviceHubHousekeepingNotifyFailed"));
       }
     } catch (err) {
       console.error(err);
-      alert("An error occurred.");
+      alert(t("serviceHubGenericError"));
     }
   };
 
@@ -313,7 +325,7 @@ export default function ReceptionistServiceHub() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: "CHECKED_OUT" })
       });
-      alert("Checkout complete!");
+      alert(t("serviceHubCheckoutComplete"));
       fetchAllData();
     } catch (err) {
       console.error(err);
@@ -321,7 +333,7 @@ export default function ReceptionistServiceHub() {
   };
 
   const handleCancelOrder = async (orderId: string) => {
-    if (!confirm("Bạn có chắc chắn muốn từ chối/hủy requested gọi món này?")) return;
+    if (!confirm(t("serviceHubCancelConfirm"))) return;
     try {
       await fetch(`/api/orders/${orderId}`, {
         method: "PATCH",
@@ -330,7 +342,7 @@ export default function ReceptionistServiceHub() {
       });
       setActiveOrders((prev) => prev.filter((o) => o.id !== orderId));
     } catch (err: any) {
-      alert("Lỗi hủy VNDơn: " + err.message);
+      alert(t("serviceHubCancelError", { error: err.message }));
     }
   };
 
@@ -345,13 +357,13 @@ export default function ReceptionistServiceHub() {
         <div className="space-y-2">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-md text-xs font-bold uppercase tracking-wider">
             <Utensils className="w-3.5 h-3.5" />
-            Receptionist Service Hub
+            {t("serviceHubBadge")}
           </div>
           <h2 className="text-2xl md:text-3xl font-extrabold flex items-center gap-3">
-            Room Management & Direct Ordering
+            {t("serviceHubTitle")}
           </h2>
           <p className="text-primary-100 text-sm max-w-2xl">
-            Easily monitor real-time room status, request urgent cleaning, or order F&B directly to the guest's bill.
+            {t("serviceHubDescription")}
           </p>
         </div>
 
@@ -365,7 +377,7 @@ export default function ReceptionistServiceHub() {
             }`}
           >
             <Home className="w-4 h-4" />
-            Rooms & Services ({rooms.length})
+            {t("serviceHubRoomsTab", { count: rooms.length })}
           </button>
           <button
             onClick={() => setActiveSubTab("ORDERS")}
@@ -376,7 +388,7 @@ export default function ReceptionistServiceHub() {
             }`}
           >
             <Clock className="w-4 h-4" />
-            Pending Orders ({activeOrders.length})
+            {t("serviceHubOrdersTab", { count: activeOrders.length })}
           </button>
           <button
             onClick={() => setActiveSubTab("CAR_RENTALS")}
@@ -387,7 +399,7 @@ export default function ReceptionistServiceHub() {
             }`}
           >
             <Car className="w-4 h-4" />
-            Car Rentals ({carRentals.length})
+            {t("serviceHubCarsTab", { count: carRentals.length })}
           </button>
           <button
             onClick={() => setActiveSubTab("EXPERIENCES")}
@@ -398,7 +410,7 @@ export default function ReceptionistServiceHub() {
             }`}
           >
             <Sparkles className="w-4 h-4" />
-            Experiences Dashboard
+            {t("serviceHubExperiencesTab")}
           </button>
           <button
             onClick={() => setActiveSubTab("CHECKOUTS")}
@@ -409,9 +421,9 @@ export default function ReceptionistServiceHub() {
             }`}
           >
             <CheckCircle2 className="w-4 h-4" />
-            Checkout Requests
+            {t("serviceHubCheckoutsTab")}
           </button>
-          <button onClick={fetchAllData} className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors" title="Refresh">
+          <button onClick={fetchAllData} className="p-3 rounded-2xl bg-white/10 hover:bg-white/20 transition-colors" title={t("serviceHubRefresh")}>
             <RefreshCw className="w-5 h-5" />
           </button>
         </div>
@@ -423,7 +435,7 @@ export default function ReceptionistServiceHub() {
           {/* Floor Filters & Legend */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-neutral-800 p-4 md:p-6 rounded-2xl border border-neutral-100 dark:border-neutral-700 shadow-sm">
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
-              <span className="text-xs font-bold text-neutral-400 mr-2 uppercase">Filter by Floor:</span>
+              <span className="text-xs font-bold text-neutral-400 mr-2 uppercase">{t("serviceHubFilterFloor")}:</span>
               <button
                 onClick={() => setFilterFloor("ALL")}
                 className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
@@ -432,7 +444,7 @@ export default function ReceptionistServiceHub() {
                     : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300"
                 }`}
               >
-                All ({rooms.length})
+                {t("serviceHubAll", { count: rooms.length })}
               </button>
               {floors.map((fl) => (
                 <button
@@ -444,16 +456,16 @@ export default function ReceptionistServiceHub() {
                       : "bg-neutral-100 dark:bg-neutral-700 text-neutral-700 dark:text-neutral-300"
                   }`}
                 >
-                  Floor {fl}
+                  {t("serviceHubFloor", { floor: fl })}
                 </button>
               ))}
             </div>
 
             <div className="flex items-center gap-4 text-xs font-semibold text-neutral-600 dark:text-neutral-300">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> Trống Sẵn Sàng (AVAILABLE)</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500"></span> Đang Có Khách (IN_USE)</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-500"></span> Chưa Dọn (DIRTY)</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500"></span> Bảo Trì (MAINTENANCE)</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-emerald-500"></span> {t("serviceHubStatusAvailable")}</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-blue-500"></span> {t("serviceHubStatusInUse")}</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-amber-500"></span> {t("serviceHubStatusDirty")}</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-full bg-red-500"></span> {t("serviceHubStatusMaintenance")}</span>
             </div>
           </div>
 
@@ -467,10 +479,10 @@ export default function ReceptionistServiceHub() {
                 MAINTENANCE: "border-red-500/60 bg-red-50/30 dark:bg-red-950/20",
               };
               const statusBadge = {
-                AVAILABLE: { label: "✨ Trống Sẵn Sàng", color: "bg-emerald-600 text-white" },
-                IN_USE: { label: "👤 Đang Có Khách", color: "bg-blue-600 text-white" },
-                DIRTY: { label: "🧹 Chờ Dọn Dẹp", color: "bg-amber-500 text-white" },
-                MAINTENANCE: { label: "🔧 Bảo Trì Kỹ Thuật", color: "bg-red-600 text-white" },
+                AVAILABLE: { label: `✨ ${t("serviceHubAvailable")}`, color: "bg-emerald-600 text-white" },
+                IN_USE: { label: `👤 ${t("serviceHubInUse")}`, color: "bg-blue-600 text-white" },
+                DIRTY: { label: `🧹 ${t("serviceHubWaitingCleaning")}`, color: "bg-amber-500 text-white" },
+                MAINTENANCE: { label: `🔧 ${t("serviceHubMaintenance")}`, color: "bg-red-600 text-white" },
               };
               const currentBadge = statusBadge[room.status as keyof typeof statusBadge] || statusBadge.AVAILABLE;
               const currentBooking = bookings.find((b: any) => b.room_id === room.id && b.status === "CHECKED_IN");
@@ -488,10 +500,10 @@ export default function ReceptionistServiceHub() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="text-2xl font-black text-neutral-900 dark:text-white">
-                        Room {room.room_number}
+                        {t("serviceHubRoom", { room: room.room_number })}
                       </span>
                       <p className="text-xs font-bold text-neutral-500 mt-0.5">
-                        {room.room_type?.name || "Deluxe Ocean"} — Floor {room.floor}
+                        {room.room_type?.name || "Deluxe Ocean"} — {t("serviceHubFloor", { floor: room.floor })}
                       </p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-extrabold shadow ${currentBadge.color}`}>
@@ -509,7 +521,7 @@ export default function ReceptionistServiceHub() {
                   {/* Actions based on status */}
                   {isOverdue && (
                     <div className="mt-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 p-2 rounded-xl text-xs font-bold flex flex-col items-center justify-center gap-1 border border-red-200 dark:border-red-800">
-                      <span>⚠️ QUÁ HẠN TRẢ PHÒNG</span>
+                      <span>⚠️ {t("serviceHubOverdueCheckout")}</span>
                       <button 
                         onClick={async () => {
                           try {
@@ -519,18 +531,18 @@ export default function ReceptionistServiceHub() {
                               body: JSON.stringify({ bookingId: currentBooking.id, action: 'REQUEST_OVERDUE' })
                             });
                             if (res.ok) {
-                              alert('Đã gửi yêu cầu trả phòng cho khách.');
+                              alert(t("serviceHubCheckoutRequestSent"));
                               fetchAllData();
                             } else {
-                              alert('Lỗi khi gửi yêu cầu trả phòng.');
+                              alert(t("serviceHubCheckoutRequestError"));
                             }
                           } catch (e) {
-                            alert('Lỗi hệ thống.');
+                            alert(t("serviceHubGenericError"));
                           }
                         }}
                         className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg mt-1 w-full"
                       >
-                        Gửi yêu cầu trả phòng
+                        {t("serviceHubRequestCheckout")}
                       </button>
                     </div>
                   )}
@@ -541,7 +553,7 @@ export default function ReceptionistServiceHub() {
                         className="flex-1 bg-primary-6000 hover:bg-primary-700 text-white font-extrabold py-3 px-4 rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 text-sm"
                       >
                         <Utensils className="w-4 h-4" />
-                        ➕ Gọi Món / Dịch Vụ
+                        ➕ {t("serviceHubOrderService")}
                       </button>
                     )}
 
@@ -549,32 +561,32 @@ export default function ReceptionistServiceHub() {
                       <div className="flex w-full gap-2">
                         <button
                           onClick={() => {
-                            alert(`📢 Đã gửi thông báo ưu tiên dọn gấp Room ${room.room_number} xuống bộ phận Housekeeping!`);
+                            alert(t("serviceHubUrgentCleaningSent", { room: room.room_number }));
                           }}
                           className="flex-1 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 px-3 rounded-2xl shadow transition-all text-xs flex items-center justify-center gap-1.5"
                         >
                           <Bell className="w-4 h-4 animate-bounce" />
-                          🚨 Hối Dọn Gấp
+                          🚨 {t("serviceHubUrgentCleaning")}
                         </button>
                         <button
                           onClick={() => handleStatusChange(room.id, "AVAILABLE")}
                           className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-3 rounded-2xl shadow transition-all text-xs flex items-center justify-center gap-1"
-                          title="Xác nhận VNDã dọn xong"
+                          title={t("serviceHubConfirmCleanTitle")}
                         >
                           <CheckCheck className="w-4 h-4" />
-                          Xác Nhận Sạch
+                          {t("serviceHubConfirmClean")}
                         </button>
                       </div>
                     )}
 
                     {room.status === "AVAILABLE" && (
                       <div className="flex w-full items-center justify-between text-xs text-emerald-700 dark:text-emerald-300 font-bold px-2 py-1.5">
-                        <span>✨ Sẵn sàng làm Check-in cho khách</span>
+                        <span>✨ {t("serviceHubReadyForCheckin")}</span>
                         <button
                           onClick={() => handleStatusChange(room.id, "MAINTENANCE")}
                           className="text-neutral-400 hover:text-red-500 font-normal underline text-xs"
                         >
-                          Báo lỗi bảo trì
+                          {t("serviceHubReportMaintenance")}
                         </button>
                       </div>
                     )}
@@ -585,7 +597,7 @@ export default function ReceptionistServiceHub() {
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-2xl shadow transition-all text-xs flex items-center justify-center gap-2"
                       >
                         <Wrench className="w-4 h-4" />
-                        Mở Khóa (Đã Sửa Xong)
+                        {t("serviceHubUnlockAfterRepair")}
                       </button>
                     )}
                   </div>
@@ -602,13 +614,13 @@ export default function ReceptionistServiceHub() {
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
               <Clock className="w-6 h-6 text-primary-6000" />
-              Danh Sách Yêu Cầu Dịch Vụ & Gọi Món Đang Phục Vụ ({activeOrders.length})
+              {t("serviceHubOrdersTitle", { count: activeOrders.length })}
             </h3>
           </div>
 
           {activeOrders.length === 0 ? (
             <div className="p-12 text-center text-neutral-500">
-              Chưa có VNDơn dịch vụ hoặc món ăn nào VNDang xử lý. Khi Lễ tân gọi món cho khách, VNDơn sẽ hiển thị ở VNDây!
+              {t("serviceHubOrdersEmpty")}
             </div>
           ) : (
             <div className="space-y-4">
@@ -617,19 +629,19 @@ export default function ReceptionistServiceHub() {
                 const estMatch = order.notes ? order.notes.match(/\[EST_TIME:\s*([^\]]+)\]/) : null;
 
                 let statusColor = "bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300";
-                let statusText = "⏳ Chờ Lễ Tân duyệt VNDơn (Khách VNDặt từ phòng)";
+                let statusText = `⏳ ${t("serviceHubOrderPendingApproval")}`;
 
                 if (order.status === "PENDING" && isForwarded) {
                   statusColor = "bg-orange-100 text-orange-800 border border-orange-300 dark:bg-orange-900/40 dark:text-orange-300";
-                  statusText = "👨‍🍳 Đã chuyển xuống Bếp — Chờ Chef tiếp nhận";
+                  statusText = `👨‍🍳 ${t("serviceHubOrderForwarded")}`;
                 } else if (order.status === "IN_PROGRESS") {
                   statusColor = "bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-900/40 dark:text-blue-300";
                   statusText = estMatch
-                    ? `🔥 Bếp VNDang chế biến — Dự kiến hoàn thành: ${estMatch[1]}`
-                    : "🔥 Bếp VNDang chế biến / Đang giao lên phòng";
+                    ? `🔥 ${t("serviceHubOrderCookingEta", { time: estMatch[1] })}`
+                    : `🔥 ${t("serviceHubOrderCooking")}`;
                 } else if (order.status === "COMPLETED") {
                   statusColor = "bg-emerald-100 text-emerald-800 border border-emerald-300 dark:bg-emerald-900/40 dark:text-emerald-300";
-                  statusText = "✅ Đã chế biến xong & Giao hoàn tất";
+                  statusText = `✅ ${t("serviceHubOrderCompleted")}`;
                 }
 
                 return (
@@ -638,9 +650,9 @@ export default function ReceptionistServiceHub() {
                       <div className="space-y-2">
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="bg-primary-6000 text-white font-black px-3 py-1 rounded-xl text-sm">
-                            Room {order.room_number || "P201"}
+                            {t("serviceHubRoom", { room: order.room_number || "P201" })}
                           </span>
-                          <span className="text-xs font-bold text-neutral-500">Mã VNDơn: #{order.id}</span>
+                          <span className="text-xs font-bold text-neutral-500">{t("serviceHubOrderCode")}: #{order.id}</span>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
                             {statusText}
                           </span>
@@ -656,17 +668,17 @@ export default function ReceptionistServiceHub() {
 
                         {order.notes && (
                           <div className="text-xs text-neutral-500 italic">
-                            📝 Ghi chú: {order.notes.replace(/\[FORWARDED_TO_KITCHEN\]/g, "").replace(/\[EST_TIME:[^\]]+\]/g, "").trim() || "Không có ghi chú thêm"}
+                            📝 {t("serviceHubNote")}: {order.notes.replace(/\[FORWARDED_TO_KITCHEN\]/g, "").replace(/\[EST_TIME:[^\]]+\]/g, "").trim() || t("serviceHubNoNote")}
                           </div>
                         )}
                       </div>
 
                       <div className="text-right">
-                        <div className="text-xs text-neutral-400">Tổng tiền ghi nợ phòng</div>
+                        <div className="text-xs text-neutral-400">{t("serviceHubRoomDebt")}</div>
                         <div className="text-xl font-black text-primary-6000 dark:text-primary-400">
-                          {order.total_amount.toLocaleString("vi-VN")} VND
+                          {formatVnd(order.total_amount)}
                         </div>
-                        <div className="text-xs text-neutral-400 mt-1">Ordered at: {new Date(order.created_at).toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" })}</div>
+                        <div className="text-xs text-neutral-400 mt-1">{t("serviceHubOrderedAt")}: {new Date(order.created_at).toLocaleTimeString(formattingLocale, { hour: "2-digit", minute: "2-digit" })}</div>
                       </div>
                     </div>
 
@@ -676,13 +688,13 @@ export default function ReceptionistServiceHub() {
                           onClick={() => handleCancelOrder(order.id)}
                           className="px-4 py-2 bg-neutral-200 dark:bg-neutral-800 text-neutral-700 dark:text-neutral-300 rounded-xl text-xs font-bold hover:bg-neutral-300 transition-colors"
                         >
-                          ❌ Từ chối / Hủy VNDơn
+                          ❌ {t("serviceHubRejectOrder")}
                         </button>
                         <button
                           onClick={() => handleForwardToKitchen(order)}
                           className="px-5 py-2 bg-primary-6000 text-white rounded-xl text-xs font-bold shadow-md hover:bg-primary-700 transition-all flex items-center gap-1.5"
                         >
-                          <CheckCircle2 className="w-4 h-4" /> ✅ Approve & Forward to Kitchen
+                          <CheckCircle2 className="w-4 h-4" /> ✅ {t("serviceHubApproveForward")}
                         </button>
                       </div>
                     )}
@@ -701,39 +713,39 @@ export default function ReceptionistServiceHub() {
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
               <Car className="w-6 h-6 text-primary-600" />
-              Car Rental Requests Tự Lái ({carRentals.length})
+              {t("serviceHubCarTitle", { count: carRentals.length })}
             </h3>
           </div>
 
           {carRentals.length === 0 ? (
             <div className="p-12 text-center text-neutral-500">
-              Chưa có requested thuê xe nào VNDược gửi lên.
+              {t("serviceHubCarEmpty")}
             </div>
           ) : (
             <div className="space-y-4">
               {carRentals.map((rental) => {
-                const checkInCccd = rental.booking?.guest?.id_card_number || rental.booking?.user?.id_card_number || "Chưa check-in";
+                const checkInCccd = rental.booking?.guest?.id_card_number || rental.booking?.user?.id_card_number || t("serviceHubNotCheckedIn");
                 const gplxCccd = rental.gplx_cccd;
                 const isMatching = checkInCccd && gplxCccd && checkInCccd.trim() === gplxCccd.trim();
 
                 let statusColor = "bg-blue-100 text-blue-800 border border-blue-300 dark:bg-blue-900/40 dark:text-blue-300";
-                let statusText = "⏳ Chờ VNDối chiếu duyệt GPLX (Pending)";
+                let statusText = `⏳ ${t("serviceHubCarPending")}`;
 
                 if (rental.status_text === "rejected") {
                   statusColor = "bg-red-100 text-red-800 border border-red-300 dark:bg-red-900/40 dark:text-red-300";
-                  statusText = "❌ Đã từ chối (CCCD không trùng khớp)";
+                  statusText = `❌ ${t("serviceHubCarRejected")}`;
                 } else if (rental.status_text === "Wait for the vehicle in the lobby.") {
                   statusColor = "bg-amber-100 text-amber-800 border border-amber-300 dark:bg-amber-900/40 dark:text-amber-300";
-                  statusText = "lobby Chờ bàn giao xe ở sảnh";
+                  statusText = t("serviceHubCarLobby");
                 } else if (rental.status_text === "waiting to return the vehicle") {
                   statusColor = "bg-red-100 text-red-800 border border-red-300 dark:bg-red-900/40 dark:text-red-300";
-                  statusText = "🚗 Đang thuê (Chờ trả xe)";
+                  statusText = `🚗 ${t("serviceHubCarRenting")}`;
                 } else if (rental.status_text === "return requested") {
                   statusColor = "bg-orange-100 text-orange-800 border border-orange-300 dark:bg-orange-900/40 dark:text-orange-300";
-                  statusText = "⏳ Khách requested trả xe — Chờ Lễ tân nhận xe";
+                  statusText = `⏳ ${t("serviceHubCarReturnRequested")}`;
                 } else if (rental.status_text === "returned") {
                   statusColor = "bg-green-100 text-green-800 border border-green-300 dark:bg-green-900/40 dark:text-green-300";
-                  statusText = "✅ Đã trả xe thành công (Tiền xe VNDã cộng vào Bill)";
+                  statusText = `✅ ${t("serviceHubCarReturned")}`;
                 }
 
                 return (
@@ -742,9 +754,9 @@ export default function ReceptionistServiceHub() {
                       <div className="space-y-2 flex-grow">
                         <div className="flex flex-wrap items-center gap-3">
                           <span className="bg-primary-600 text-white font-black px-3 py-1 rounded-xl text-sm">
-                            Room {rental.booking?.room?.room_number || "P101"}
+                            {t("serviceHubRoom", { room: rental.booking?.room?.room_number || "P101" })}
                           </span>
-                          <span className="text-xs font-bold text-neutral-600 dark:text-neutral-400">Mã: #{rental.id.split("-")[0].toUpperCase()}</span>
+                          <span className="text-xs font-bold text-neutral-600 dark:text-neutral-400">{t("serviceHubCode")}: #{rental.id.split("-")[0].toUpperCase()}</span>
                           <span className={`px-3 py-1 rounded-full text-xs font-bold ${statusColor}`}>
                             {statusText}
                           </span>
@@ -752,39 +764,39 @@ export default function ReceptionistServiceHub() {
 
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-2 pt-2 text-sm">
                           <div>
-                            <span className="text-neutral-600 dark:text-neutral-400 font-medium">Khách hàng:</span>
-                            <span className="text-neutral-850 dark:text-neutral-200 font-bold ml-1.5">{rental.booking?.user?.full_name || rental.booking?.guest?.full_name || "Guest"}</span>
+                            <span className="text-neutral-600 dark:text-neutral-400 font-medium">{t("serviceHubCustomer")}:</span>
+                            <span className="text-neutral-850 dark:text-neutral-200 font-bold ml-1.5">{rental.booking?.user?.full_name || rental.booking?.guest?.full_name || t("serviceHubGuest")}</span>
                           </div>
                           <div>
-                            <span className="text-neutral-600 dark:text-neutral-400 font-medium">Xe VNDăng ký:</span>
+                            <span className="text-neutral-600 dark:text-neutral-400 font-medium">{t("serviceHubRegisteredCar")}:</span>
                             <span className="text-neutral-855 dark:text-neutral-200 font-bold ml-1.5">{rental.car_type}</span>
                           </div>
                           <div>
-                            <span className="text-neutral-600 dark:text-neutral-400 font-medium">Thời gian thuê:</span>
+                            <span className="text-neutral-600 dark:text-neutral-400 font-medium">{t("serviceHubRentalPeriod")}:</span>
                             <span className="text-neutral-860 dark:text-neutral-200 font-bold ml-1.5">
-                              {new Date(rental.pickup_date).toLocaleDateString("vi-VN")} ➔ {new Date(rental.dropoff_date).toLocaleDateString("vi-VN")}
+                              {new Date(rental.pickup_date).toLocaleDateString(formattingLocale)} ➔ {new Date(rental.dropoff_date).toLocaleDateString(formattingLocale)}
                             </span>
                           </div>
                         </div>
 
                         <div className="bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 p-4 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
                           <div className="space-y-1">
-                            <div className="text-xs text-neutral-600 dark:text-neutral-400 uppercase font-bold">Số CCCD Check-in phòng:</div>
+                            <div className="text-xs text-neutral-600 dark:text-neutral-400 uppercase font-bold">{t("serviceHubCheckinIdNumber")}:</div>
                             <div className="text-sm font-black font-mono text-neutral-800 dark:text-neutral-200">
                               💳 {checkInCccd}
                             </div>
                           </div>
                           <div className="space-y-1">
-                            <div className="text-xs text-neutral-600 dark:text-neutral-400 uppercase font-bold">Số CCCD trên GPLX tự khai:</div>
+                            <div className="text-xs text-neutral-600 dark:text-neutral-400 uppercase font-bold">{t("serviceHubDeclaredLicenseId")}:</div>
                             <div className="flex items-center gap-2">
                               <span className="text-sm font-black font-mono text-neutral-800 dark:text-neutral-200">
-                                🪪 {gplxCccd || "Chưa nhập"}
+                                🪪 {gplxCccd || t("serviceHubNotEntered")}
                               </span>
                               {checkInCccd && gplxCccd ? (
                                 isMatching ? (
-                                  <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-green-200">CCCD TRÙNG KHỚP</span>
+                                  <span className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-green-200">{t("serviceHubIdMatch")}</span>
                                 ) : (
-                                  <span className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-red-200">CCCD LỆCH</span>
+                                  <span className="bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300 text-[10px] font-black px-1.5 py-0.5 rounded-md border border-red-200">{t("serviceHubIdMismatch")}</span>
                                 )
                               ) : null}
                             </div>
@@ -793,7 +805,7 @@ export default function ReceptionistServiceHub() {
 
                         {rental.gplx_image && (rental.gplx_image.startsWith("data:image/") || rental.gplx_image.startsWith("http")) ? (
                           <div className="mt-2 space-y-1">
-                            <span className="text-xs text-neutral-600 dark:text-neutral-400 font-medium">📂 Ảnh chụp GPLX:</span>
+                            <span className="text-xs text-neutral-600 dark:text-neutral-400 font-medium">📂 {t("serviceHubLicensePhoto")}:</span>
                             <div className="relative max-w-[240px] rounded-2xl overflow-hidden border border-neutral-200 dark:border-neutral-800 shadow-md group cursor-pointer hover:shadow-lg transition-all">
                               <img 
                                 src={rental.gplx_image} 
@@ -808,7 +820,7 @@ export default function ReceptionistServiceHub() {
                           </div>
                         ) : (
                           <div className="text-xs text-neutral-500 flex items-center gap-1.5 pt-1">
-                            <span>📂 File ảnh GPLX thủ công:</span>
+                            <span>📂 {t("serviceHubManualLicenseFile")}:</span>
                             <span className="text-primary-600 underline font-bold select-all cursor-pointer">{rental.gplx_image || "gplx_manual_upload.png"}</span>
                           </div>
                         )}
@@ -816,11 +828,11 @@ export default function ReceptionistServiceHub() {
 
                       <div className="text-right flex flex-col justify-between items-end gap-2">
                         <div className="space-y-0.5">
-                          <div className="text-xs text-neutral-400">Giá trị thuê xe</div>
+                          <div className="text-xs text-neutral-400">{t("serviceHubRentalValue")}</div>
                           <div className="text-xl font-black text-red-600 dark:text-red-400">
-                            {(rental.total_amount * 26320).toLocaleString("vi-VN")} VND
+                            {formatVnd(rental.total_amount * 26320)}
                           </div>
-                          <span className="text-xs text-neutral-400 font-mono">({(rental.total_amount).toLocaleString("en-US")} USD)</span>
+                          <span className="text-xs text-neutral-400 font-mono">({rental.total_amount.toLocaleString(formattingLocale)} USD)</span>
                         </div>
                       </div>
                     </div>
@@ -832,13 +844,13 @@ export default function ReceptionistServiceHub() {
                             onClick={() => handleUpdateCarBookingStatus(rental.id, "CANCELLED", "rejected")}
                             className="px-4 py-2 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 rounded-xl text-xs font-bold transition-colors"
                           >
-                            ❌ Từ chối (CCCD không khớp)
+                            ❌ {t("serviceHubRejectIdMismatch")}
                           </button>
                           <button
                             onClick={() => handleUpdateCarBookingStatus(rental.id, "IN_PROGRESS", "Wait for the vehicle in the lobby.")}
                             className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
                           >
-                            <Check className="w-4 h-4" /> Duyệt GPLX & Chờ ở Sảnh
+                            <Check className="w-4 h-4" /> {t("serviceHubApproveLicense")}
                           </button>
                         </>
                       )}
@@ -848,7 +860,7 @@ export default function ReceptionistServiceHub() {
                           onClick={() => handleUpdateCarBookingStatus(rental.id, "IN_PROGRESS", "waiting to return the vehicle")}
                           className="px-5 py-2 bg-primary-6000 hover:bg-primary-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
                         >
-                          <Car className="w-4 h-4" /> 🚗 Giao xe cho Khách hàng
+                          <Car className="w-4 h-4" /> 🚗 {t("serviceHubHandOverCar")}
                         </button>
                       )}
 
@@ -857,23 +869,23 @@ export default function ReceptionistServiceHub() {
                           onClick={() => handleUpdateCarBookingStatus(rental.id, "COMPLETED", "returned")}
                           className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-md transition-all flex items-center gap-1.5"
                         >
-                          <CheckCheck className="w-4 h-4" /> ✓ Xác nhận trả xe & Ghi nợ phòng
+                          <CheckCheck className="w-4 h-4" /> ✓ {t("serviceHubConfirmCarReturn")}
                         </button>
                       )}
 
                       {rental.status_text === "waiting to return the vehicle" && (
-                        <span className="text-xs text-neutral-400 font-medium italic">Khách hàng VNDang thuê xe. Chờ khách trả xe trên giao diện...</span>
+                        <span className="text-xs text-neutral-400 font-medium italic">{t("serviceHubCustomerRenting")}</span>
                       )}
 
                       {rental.status_text === "returned" && (
                         <span className="text-xs text-green-600 dark:text-green-400 font-bold flex items-center gap-1">
-                          ✓ Paid & Handover complete
+                          ✓ {t("serviceHubPaidHandoverComplete")}
                         </span>
                       )}
 
                       {rental.status_text === "rejected" && (
                         <span className="text-xs text-red-600 dark:text-red-400 font-bold">
-                          ✓ Rejected due to info mismatch
+                          ✓ {t("serviceHubRejectedInfoMismatch")}
                         </span>
                       )}
                     </div>
@@ -893,10 +905,10 @@ export default function ReceptionistServiceHub() {
           <div className="border-b border-neutral-100 dark:border-neutral-800 pb-4">
             <h3 className="text-xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-2">
               <Sparkles className="w-5 h-5 text-emerald-600 animate-pulse" />
-              <span>Hotel Experience Monitoring & Management</span>
+              <span>{t("serviceHubExperienceTitle")}</span>
             </h3>
             <p className="text-xs text-neutral-500 mt-1">
-              Bảng theo dõi trạng thái VNDặt tour trải nghiệm (climbing, rowing, swimming, skiing) của tất cả các phòng lưu trú.
+              {t("serviceHubExperienceDescription")}
             </p>
           </div>
 
@@ -904,13 +916,13 @@ export default function ReceptionistServiceHub() {
             <table className="w-full text-left text-sm text-neutral-600 dark:text-neutral-300">
               <thead className="bg-neutral-50 dark:bg-neutral-800/80 text-neutral-800 dark:text-neutral-200 border-b border-neutral-200 dark:border-neutral-800">
                 <tr>
-                  <th className="px-6 py-4 font-extrabold">Room Number</th>
-                  <th className="px-6 py-4 font-extrabold">Room Status</th>
-                  <th className="px-6 py-4 font-extrabold">Current Guest</th>
-                  <th className="px-6 py-4 font-extrabold">Booked Experiences</th>
-                  <th className="px-6 py-4 font-extrabold">Booking Channel</th>
-                  <th className="px-6 py-4 font-extrabold">Payment</th>
-                  <th className="px-6 py-4 font-extrabold text-right">Total Cost</th>
+                  <th className="px-6 py-4 font-extrabold">{t("serviceHubRoomNumber")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("serviceHubRoomStatus")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("serviceHubCurrentGuest")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("serviceHubBookedExperiences")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("serviceHubBookingChannel")}</th>
+                  <th className="px-6 py-4 font-extrabold">{t("serviceHubPayment")}</th>
+                  <th className="px-6 py-4 font-extrabold text-right">{t("serviceHubTotalCost")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-800">
@@ -956,7 +968,7 @@ export default function ReceptionistServiceHub() {
                   return (
                     <tr key={room.id} className="hover:bg-neutral-50/50 dark:hover:bg-neutral-800/30 transition-colors">
                       <td className="px-6 py-4 font-bold text-neutral-900 dark:text-white">
-                        Room {room.room_number}
+                        {t("serviceHubRoom", { room: room.room_number })}
                       </td>
                       <td className="px-6 py-4">
                         <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
@@ -965,14 +977,14 @@ export default function ReceptionistServiceHub() {
                           room.status === "DIRTY" ? "bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300" :
                           "bg-red-100 text-red-800 dark:bg-red-950 dark:text-red-300"
                         }`}>
-                          {room.status}
+                          {room.status === "AVAILABLE" ? t("serviceHubAvailable") : room.status === "IN_USE" ? t("serviceHubInUse") : room.status === "DIRTY" ? t("serviceHubWaitingCleaning") : t("serviceHubMaintenance")}
                         </span>
                       </td>
                       <td className="px-6 py-4 font-semibold text-neutral-700 dark:text-neutral-300">
                         {guestName}
                       </td>
                       <td className="px-6 py-4 space-y-1">
-                        {!hasExp && <span className="text-neutral-400 text-xs">Chưa VNDặt trải nghiệm</span>}
+                        {!hasExp && <span className="text-neutral-400 text-xs">{t("serviceHubNoExperience")}</span>}
                         {onlineExps.map((b: any) => {
                           let title = "Experience Tour";
                           try {
@@ -992,14 +1004,14 @@ export default function ReceptionistServiceHub() {
                         ))}
                       </td>
                       <td className="px-6 py-4 text-xs font-bold uppercase tracking-wider text-neutral-500">
-                        {onlineExps.map((b: any) => <div key={b.id}>Online Booking</div>)}
-                        {counterExps.map((item: any, idx: number) => <div key={idx}>At Reception</div>)}
+                        {onlineExps.map((b: any) => <div key={b.id}>{t("serviceHubOnlineBooking")}</div>)}
+                        {counterExps.map((item: any, idx: number) => <div key={idx}>{t("serviceHubAtReception")}</div>)}
                       </td>
                       <td className="px-6 py-4 space-y-1">
                         {onlineExps.map((b: any) => (
                           <div key={b.id}>
                             <span className="px-2 py-0.5 rounded text-xs font-bold bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300">
-                              Paid (Online)
+                              {t("serviceHubPaidOnline")}
                             </span>
                           </div>
                         ))}
@@ -1012,15 +1024,15 @@ export default function ReceptionistServiceHub() {
                                   ? "bg-green-100 text-green-800 dark:bg-green-950/40 dark:text-green-300"
                                   : "bg-amber-100 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300"
                               }`}>
-                                {isPaid ? "Paid" : "Charged to room (Pending payment)"}
+                                {isPaid ? t("serviceHubPaid") : t("serviceHubChargedPending")}
                               </span>
                             </div>
                           );
                         })}
                       </td>
                       <td className="px-6 py-4 text-right font-black text-neutral-900 dark:text-white">
-                        {onlineExps.map((b: any) => <div key={b.id}>{(b.total_amount || 0).toLocaleString("vi-VN")} VND</div>)}
-                        {counterExps.map((item: any, idx: number) => <div key={idx}>{(item.price || 0).toLocaleString("vi-VN")} VND</div>)}
+                        {onlineExps.map((b: any) => <div key={b.id}>{formatVnd(b.total_amount || 0)}</div>)}
+                        {counterExps.map((item: any, idx: number) => <div key={idx}>{formatVnd(item.price || 0)}</div>)}
                       </td>
                     </tr>
                   );
@@ -1037,30 +1049,30 @@ export default function ReceptionistServiceHub() {
           <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h3 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
               <CheckCircle2 className="w-6 h-6 text-primary-600" />
-              Checkout Requests
+              {t("serviceHubCheckoutsTab")}
             </h3>
           </div>
           <div className="space-y-4">
             {bookings.filter(b => b.checkout_step && b.checkout_step !== "NONE" && b.status === "CHECKED_IN").length === 0 && (
-              <p className="text-neutral-500 py-8 text-center bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">No checkout requests at the moment.</p>
+              <p className="text-neutral-500 py-8 text-center bg-white dark:bg-neutral-800 rounded-2xl border border-neutral-100 dark:border-neutral-700">{t("serviceHubNoCheckoutRequests")}</p>
             )}
             {bookings.filter(b => b.checkout_step && b.checkout_step !== "NONE" && b.status === "CHECKED_IN").map(b => (
               <div key={b.id} className="p-4 bg-white dark:bg-neutral-800 border rounded-2xl shadow-sm flex flex-col md:flex-row gap-4 justify-between items-center">
                 <div>
-                  <h4 className="font-bold text-lg">Room {b.room?.room_number}</h4>
-                  <p className="text-sm text-neutral-500">Guest: {b.user?.full_name || b.guest?.full_name}</p>
-                  <p className="text-sm font-semibold mt-1 text-primary-600">Status: {b.checkout_step}</p>
-                  {b.checkout_message && <p className="text-sm mt-1">Message: {b.checkout_message}</p>}
+                  <h4 className="font-bold text-lg">{t("serviceHubRoom", { room: b.room?.room_number })}</h4>
+                  <p className="text-sm text-neutral-500">{t("serviceHubGuest")}: {b.user?.full_name || b.guest?.full_name}</p>
+                  <p className="text-sm font-semibold mt-1 text-primary-600">{t("serviceHubStatus")}: {b.checkout_step}</p>
+                  {b.checkout_message && <p className="text-sm mt-1">{t("serviceHubMessage")}: {b.checkout_message}</p>}
                 </div>
                 <div className="flex gap-2">
                   {b.checkout_step === "REQUESTED" && (
                     <button onClick={() => handleCheckoutAction(b.id, "SEND_CLEANER")} className="px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700">
-                      Send Housekeeping
+                      {t("serviceHubSendHousekeeping")}
                     </button>
                   )}
                   {b.checkout_step === "INSPECTED" && (
                     <button onClick={() => handleCompleteCheckout(b.id)} className="px-4 py-2 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700">
-                      Complete Checkout
+                      {t("serviceHubCompleteCheckout")}
                     </button>
                   )}
                 </div>
@@ -1079,10 +1091,10 @@ export default function ReceptionistServiceHub() {
               <div>
                 <h3 className="text-xl font-extrabold flex items-center gap-2">
                   <Utensils className="w-6 h-6 text-primary-500" />
-                  Gọi Món F&B & Dịch Vụ Cho Room {selectedRoomForService.room_number}
+                  {t("serviceHubModalTitle", { room: selectedRoomForService.room_number })}
                 </h3>
                 <p className="text-xs text-neutral-400 mt-0.5">
-                  Khách hàng: {selectedRoomForService.notes?.split(":")?.[1] || "VIP guest staying"} — Charges will be automatically added to the checkout bill.
+                  {t("serviceHubCustomer")}: {selectedRoomForService.notes?.split(":")?.[1] || t("serviceHubVipGuest")} — {t("serviceHubChargesAdded")}
                 </p>
               </div>
               <button onClick={() => setIsOrderModalOpen(false)} className="text-neutral-400 hover:text-white p-1">
@@ -1100,7 +1112,7 @@ export default function ReceptionistServiceHub() {
                     serviceCategory === "ALL" ? "bg-primary-6000 text-white" : "bg-neutral-100 dark:bg-neutral-700"
                   }`}
                 >
-                  All
+                  {t("serviceHubAllServices")}
                 </button>
                 {["FOOD", "BEVERAGE", "LAUNDRY", "AMENITY", "OTHER"].map((cat) => (
                   <button
@@ -1110,11 +1122,11 @@ export default function ReceptionistServiceHub() {
                       serviceCategory === cat ? "bg-primary-6000 text-white" : "bg-neutral-100 dark:bg-neutral-700"
                     }`}
                   >
-                    {cat === "FOOD" && "🍲 Đồ ăn"}
-                    {cat === "BEVERAGE" && "🍹 Thức uống"}
-                    {cat === "LAUNDRY" && "👔 Giặt ủi"}
-                    {cat === "AMENITY" && "🧼 Tiện ích"}
-                    {cat === "OTHER" && "🧗 Trải nghiệm & Khác"}
+                    {cat === "FOOD" && `🍲 ${t("serviceHubFood")}`}
+                    {cat === "BEVERAGE" && `🍹 ${t("serviceHubBeverage")}`}
+                    {cat === "LAUNDRY" && `👔 ${t("serviceHubLaundry")}`}
+                    {cat === "AMENITY" && `🧼 ${t("serviceHubAmenity")}`}
+                    {cat === "OTHER" && `🧗 ${t("serviceHubExperienceOther")}`}
                   </button>
                 ))}
               </div>
@@ -1125,7 +1137,7 @@ export default function ReceptionistServiceHub() {
                   <div key={srv.id} className="p-4 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 flex items-center justify-between">
                     <div>
                       <div className="font-extrabold text-sm text-neutral-900 dark:text-white">{srv.name}</div>
-                      <div className="text-xs font-bold text-primary-6000 mt-0.5">{srv.price.toLocaleString("vi-VN")} VND</div>
+                      <div className="text-xs font-bold text-primary-6000 mt-0.5">{formatVnd(srv.price)}</div>
                     </div>
                     <button
                       type="button"
@@ -1141,13 +1153,13 @@ export default function ReceptionistServiceHub() {
               {/* Selected Order Items Summary */}
               <div className="border-t border-neutral-200 dark:border-neutral-700 pt-4 space-y-3">
                 <h4 className="font-bold text-sm text-neutral-900 dark:text-white flex items-center justify-between">
-                  <span>🛒 Các Món / Dịch Vụ Đã Chọn ({orderItems.length})</span>
-                  <span className="text-primary-6000 font-extrabold">{totalOrderAmount.toLocaleString("vi-VN")} VND</span>
+                  <span>🛒 {t("serviceHubSelectedItems", { count: orderItems.length })}</span>
+                  <span className="text-primary-6000 font-extrabold">{formatVnd(totalOrderAmount)}</span>
                 </h4>
 
                 {orderItems.length === 0 ? (
                   <div className="text-center py-6 border border-dashed border-neutral-200 dark:border-neutral-700 rounded-2xl text-xs text-neutral-400">
-                    Chưa chọn món nào. Bấm dấu (+) phía trên VNDể thêm món vào VNDơn!
+                    {t("serviceHubNoSelectedItems")}
                   </div>
                 ) : (
                   <div className="space-y-2">
@@ -1155,7 +1167,7 @@ export default function ReceptionistServiceHub() {
                       <div key={item.service.id} className="flex items-center justify-between bg-white dark:bg-neutral-800 p-3 rounded-xl border border-neutral-200 dark:border-neutral-700">
                         <div>
                           <span className="font-bold text-sm">{item.service.name}</span>
-                          <span className="text-xs text-neutral-400 block">{item.service.price.toLocaleString("vi-VN")} VND / VNDơn vị</span>
+                          <span className="text-xs text-neutral-400 block">{t("serviceHubPricePerUnit", { price: formatVnd(item.service.price) })}</span>
                         </div>
                         <div className="flex items-center gap-3">
                           <button
@@ -1183,10 +1195,10 @@ export default function ReceptionistServiceHub() {
               {/* Notes */}
               <div>
                 <label className="block text-xs font-bold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Ghi chú cho Bếp & Nhân viên giao phòng
+                  {t("serviceHubKitchenNotes")}
                 </label>
                 <Input
-                  placeholder="Ví dụ: Giao gấp cùng nước VNDá, ít VNDường..."
+                  placeholder={t("serviceHubKitchenNotesPlaceholder")}
                   value={orderNotes}
                   onChange={(e) => setOrderNotes(e.target.value)}
                 />
@@ -1196,16 +1208,16 @@ export default function ReceptionistServiceHub() {
             {/* Modal Footer */}
             <div className="p-6 bg-neutral-50 dark:bg-neutral-900 border-t border-neutral-200 dark:border-neutral-700 flex items-center justify-between">
               <div>
-                <span className="text-xs text-neutral-400">Tổng cộng thanh toán</span>
+                <span className="text-xs text-neutral-400">{t("serviceHubTotalPayment")}</span>
                 <div className="text-2xl font-black text-primary-6000 dark:text-primary-400">
-                  {totalOrderAmount.toLocaleString("vi-VN")} VND
+                  {formatVnd(totalOrderAmount)}
                 </div>
               </div>
 
               <div className="flex gap-3">
-                <ButtonThird type="button" onClick={() => setIsOrderModalOpen(false)}>Hủy</ButtonThird>
+                <ButtonThird type="button" onClick={() => setIsOrderModalOpen(false)}>{t("serviceHubCancel")}</ButtonThird>
                 <ButtonPrimary type="button" onClick={() => handleSubmitOrder()} disabled={orderItems.length === 0}>
-                  Xác Nhận & Ghi Nợ Vào Phòng
+                  {t("serviceHubConfirmChargeRoom")}
                 </ButtonPrimary>
               </div>
             </div>

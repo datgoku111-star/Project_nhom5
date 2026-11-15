@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Users, UserPlus, Shield, CheckCircle2, XCircle, Trash2, Edit2, RefreshCw, Lock, Unlock, Search, Filter } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
 import Input from "@/shared/Input";
@@ -16,15 +17,30 @@ export interface UserAccount {
   created_at?: string;
 }
 
-const ROLES_META = {
-  ADMIN: { label: "🛡️ Quản Trị Viên (Admin)", color: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300" },
-  RECEPTIONIST: { label: "🛎️ Lễ Tân (Receptionist)", color: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300" },
-  HOUSEKEEPING: { label: "🧹 Buồng Phòng (Housekeeping)", color: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300" },
-  KITCHEN: { label: "🍳 Nhà Bếp (Kitchen)", color: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300" },
-  CUSTOMER: { label: "👤 Khách Hàng (Customer)", color: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300" },
+const ROLE_COLORS: Record<UserAccount["role"], string> = {
+  ADMIN: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
+  RECEPTIONIST: "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300",
+  HOUSEKEEPING: "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300",
+  KITCHEN: "bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300",
+  CUSTOMER: "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300",
 };
 
 export default function UserManagement() {
+  const { t } = useTranslation();
+  const getRoleLabel = (role: UserAccount["role"]) => {
+    switch (role) {
+      case "ADMIN":
+        return t("userManagementRoleAdmin");
+      case "RECEPTIONIST":
+        return t("userManagementRoleReceptionist");
+      case "HOUSEKEEPING":
+        return t("userManagementRoleHousekeeping");
+      case "KITCHEN":
+        return t("userManagementRoleKitchen");
+      case "CUSTOMER":
+        return t("userManagementRoleCustomer");
+    }
+  };
   const [users, setUsers] = useState<UserAccount[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -46,7 +62,7 @@ export default function UserManagement() {
     setLoading(true);
     try {
       const res = await fetch("/api/admin/users");
-      if (!res.ok) throw new Error("Lỗi tải danh sách người dùng");
+      if (!res.ok) throw new Error(t("userManagementLoadError"));
       const data = await res.json();
       if (data.users && Array.isArray(data.users) && data.users.length > 0) {
         setUsers(data.users);
@@ -105,7 +121,7 @@ export default function UserManagement() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.email || !formData.full_name) {
-      alert("Vui lòng nhập Email và Họ tên đầy đủ!");
+      alert(t("userManagementRequiredFields"));
       return;
     }
 
@@ -121,12 +137,12 @@ export default function UserManagement() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ id: editingUser.id, ...formData }),
           });
-          if (!res.ok) throw new Error("Lỗi cập nhật người dùng");
+          if (!res.ok) throw new Error(t("userManagementUpdateError"));
           await fetchUsers();
         }
       } else {
         if (!formData.password) {
-          alert("Vui lòng nhập mật khẩu khởi tạo cho tài khoản mới!");
+          alert(t("userManagementPasswordRequired"));
           return;
         }
         const res = await fetch("/api/admin/users", {
@@ -147,7 +163,7 @@ export default function UserManagement() {
       }
       setIsModalOpen(false);
     } catch (err: any) {
-      alert("Lỗi: " + err.message);
+      alert(t("userManagementGenericError", { message: err.message }));
     }
   };
 
@@ -170,17 +186,17 @@ export default function UserManagement() {
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Bạn có chắc chắn muốn xóa tài khoản này?")) return;
+    if (!confirm(t("userManagementConfirmDelete"))) return;
     try {
       if (id.startsWith("u-")) {
         setUsers((prev) => prev.filter((u) => u.id !== id));
       } else {
         const res = await fetch(`/api/admin/users?id=${id}`, { method: "DELETE" });
-        if (!res.ok) throw new Error("Không thể xóa");
+        if (!res.ok) throw new Error(t("userManagementDeleteError"));
         setUsers((prev) => prev.filter((u) => u.id !== id));
       }
     } catch (err: any) {
-      alert("Lỗi xóa: " + err.message);
+      alert(t("userManagementDeleteErrorWithMessage", { message: err.message }));
     }
   };
 
@@ -202,7 +218,7 @@ export default function UserManagement() {
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
             <input
               type="text"
-              placeholder="Tìm theo tên, email hoặc SĐT..."
+              placeholder={t("userManagementSearchPlaceholder")}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2.5 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-primary-600 outline-none"
@@ -214,23 +230,23 @@ export default function UserManagement() {
             onChange={(e) => setRoleFilter(e.target.value)}
             className="rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900 px-4 py-2.5 text-sm font-semibold outline-none"
           >
-            <option value="ALL">Tất cả vai trò</option>
-            <option value="ADMIN">🛡️ Quản Trị (Admin)</option>
-            <option value="RECEPTIONIST">🛎️ Lễ Tân</option>
-            <option value="HOUSEKEEPING">🧹 Buồng Phòng</option>
-            <option value="KITCHEN">🍳 Nhà Bếp</option>
-            <option value="CUSTOMER">👤 Khách Hàng</option>
+            <option value="ALL">{t("userManagementAllRoles")}</option>
+            <option value="ADMIN">{getRoleLabel("ADMIN")}</option>
+            <option value="RECEPTIONIST">{getRoleLabel("RECEPTIONIST")}</option>
+            <option value="HOUSEKEEPING">{getRoleLabel("HOUSEKEEPING")}</option>
+            <option value="KITCHEN">{getRoleLabel("KITCHEN")}</option>
+            <option value="CUSTOMER">{getRoleLabel("CUSTOMER")}</option>
           </select>
         </div>
 
         <div className="flex items-center gap-3">
           <ButtonThird onClick={fetchUsers} sizeClass="px-4 py-2.5">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Làm mới
+            {t("userManagementRefresh")}
           </ButtonThird>
           <ButtonPrimary onClick={openAddModal} sizeClass="px-5 py-2.5">
             <UserPlus className="w-5 h-5 mr-1.5" />
-            Tạo Tài Khoản Mới
+            {t("userManagementCreateAccount")}
           </ButtonPrimary>
         </div>
       </div>
@@ -238,24 +254,24 @@ export default function UserManagement() {
       {/* Users Table */}
       <div className="bg-white dark:bg-neutral-800 rounded-3xl shadow-sm border border-neutral-100 dark:border-neutral-700 overflow-hidden">
         {loading ? (
-          <div className="p-12 text-center text-neutral-500">Đang tải danh sách tài khoản...</div>
+          <div className="p-12 text-center text-neutral-500">{t("userManagementLoading")}</div>
         ) : filteredUsers.length === 0 ? (
-          <div className="p-12 text-center text-neutral-500">Không tìm thấy thành viên nào phù hợp với bộ lọc.</div>
+          <div className="p-12 text-center text-neutral-500">{t("userManagementEmptyState")}</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-900/50 text-neutral-600 dark:text-neutral-300 font-semibold text-sm">
-                  <th className="py-4 px-6">Họ & Tên</th>
-                  <th className="py-4 px-6">Email / SĐT</th>
-                  <th className="py-4 px-6">Phân Quyền (Role)</th>
-                  <th className="py-4 px-6">Trạng Thái Tài Khoản</th>
-                  <th className="py-4 px-6 text-right">Thao Tác</th>
+                  <th className="py-4 px-6">{t("userManagementTableName")}</th>
+                  <th className="py-4 px-6">{t("userManagementTableContact")}</th>
+                  <th className="py-4 px-6">{t("userManagementTableRole")}</th>
+                  <th className="py-4 px-6">{t("userManagementTableStatus")}</th>
+                  <th className="py-4 px-6 text-right">{t("userManagementTableActions")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-neutral-100 dark:divide-neutral-700/60 text-sm">
                 {filteredUsers.map((user) => {
-                  const roleMeta = ROLES_META[user.role] || ROLES_META.CUSTOMER;
+                  const role = ROLE_COLORS[user.role] ? user.role : "CUSTOMER";
                   return (
                     <tr key={user.id} className="hover:bg-neutral-50/80 dark:hover:bg-neutral-700/30 transition-colors">
                       <td className="py-4 px-6 font-bold text-neutral-900 dark:text-white text-base">
@@ -266,8 +282,8 @@ export default function UserManagement() {
                         {user.phone && <div className="text-xs text-neutral-400 mt-0.5">{user.phone}</div>}
                       </td>
                       <td className="py-4 px-6">
-                        <span className={`px-3 py-1 rounded-xl font-semibold text-xs ${roleMeta.color}`}>
-                          {roleMeta.label}
+                        <span className={`px-3 py-1 rounded-xl font-semibold text-xs ${ROLE_COLORS[role]}`}>
+                          {getRoleLabel(role)}
                         </span>
                       </td>
                       <td className="py-4 px-6">
@@ -280,21 +296,25 @@ export default function UserManagement() {
                           }`}
                         >
                           {user.is_active ? <Unlock className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
-                          {user.is_active ? "Đang Hoạt Động (Active)" : "Đã Khóa (Locked)"}
+                          {user.is_active
+                            ? t("userManagementStatusActive")
+                            : t("userManagementStatusLocked")}
                         </button>
                       </td>
                       <td className="py-4 px-6 text-right space-x-2">
                         <button
                           onClick={() => openEditModal(user)}
                           className="p-2 rounded-lg bg-neutral-100 dark:bg-neutral-700 hover:bg-neutral-200 dark:hover:bg-neutral-600 text-neutral-700 dark:text-neutral-200 transition-colors"
-                          title="Chỉnh sửa"
+                          title={t("userManagementEdit")}
+                          aria-label={t("userManagementEdit")}
                         >
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button
                           onClick={() => handleDelete(user.id)}
                           className="p-2 rounded-lg bg-red-50 dark:bg-red-900/30 hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600 dark:text-red-400 transition-colors"
-                          title="Xóa"
+                          title={t("userManagementDelete")}
+                          aria-label={t("userManagementDelete")}
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -314,9 +334,16 @@ export default function UserManagement() {
           <div className="bg-white dark:bg-neutral-800 rounded-3xl max-w-lg w-full p-6 md:p-8 shadow-2xl border border-neutral-100 dark:border-neutral-700 space-y-6">
             <div className="flex items-center justify-between border-b border-neutral-100 dark:border-neutral-700 pb-4">
               <h3 className="text-xl font-bold text-neutral-900 dark:text-white">
-                {editingUser ? "✏️ Chỉnh Sửa Tài Khoản Nhân Sự / Khách" : "➕ Tạo Tài Khoản Mới"}
+                {editingUser
+                  ? t("userManagementEditAccountTitle")
+                  : t("userManagementCreateAccountTitle")}
               </h3>
-              <button onClick={() => setIsModalOpen(false)} className="text-neutral-400 hover:text-neutral-600 p-1">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="text-neutral-400 hover:text-neutral-600 p-1"
+                title={t("userManagementClose")}
+                aria-label={t("userManagementClose")}
+              >
                 <XCircle className="w-6 h-6" />
               </button>
             </div>
@@ -324,11 +351,11 @@ export default function UserManagement() {
             <form onSubmit={handleSave} className="space-y-4">
               <div>
                 <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                  Họ & Tên Đầy Đủ <span className="text-red-500">*</span>
+                  {t("userManagementFullNameField")} <span className="text-red-500">*</span>
                 </label>
                 <Input
                   required
-                  placeholder="Ví dụ: Trần Thị Lễ Tân, Nguyễn Văn A..."
+                  placeholder={t("userManagementFullNamePlaceholder")}
                   value={formData.full_name}
                   onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
                 />
@@ -337,7 +364,7 @@ export default function UserManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Email Đăng Nhập <span className="text-red-500">*</span>
+                    {t("userManagementEmailField")} <span className="text-red-500">*</span>
                   </label>
                   <Input
                     required
@@ -350,7 +377,7 @@ export default function UserManagement() {
 
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Số Điện Thoại
+                    {t("userManagementPhoneField")}
                   </label>
                   <Input
                     placeholder="0912345678"
@@ -363,28 +390,30 @@ export default function UserManagement() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    Phân Quyền (Role) <span className="text-red-500">*</span>
+                    {t("userManagementRoleField")} <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.role}
-                    onChange={(e: any) => setFormData({ ...formData, role: e.target.value })}
+                    onChange={(e) => setFormData({ ...formData, role: e.target.value as UserAccount["role"] })}
                     className="w-full rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 px-4 py-3 text-sm font-semibold focus:ring-2 focus:ring-primary-600 outline-none"
                   >
-                    <option value="CUSTOMER">👤 Khách Hàng (Customer)</option>
-                    <option value="RECEPTIONIST">🛎️ Lễ Tân (Receptionist)</option>
-                    <option value="HOUSEKEEPING">🧹 Buồng Phòng (Housekeeping)</option>
-                    <option value="KITCHEN">🍳 Nhà Bếp (Kitchen)</option>
-                    <option value="ADMIN">🛡️ Quản Trị Viên (Admin)</option>
+                    <option value="CUSTOMER">{getRoleLabel("CUSTOMER")}</option>
+                    <option value="RECEPTIONIST">{getRoleLabel("RECEPTIONIST")}</option>
+                    <option value="HOUSEKEEPING">{getRoleLabel("HOUSEKEEPING")}</option>
+                    <option value="KITCHEN">{getRoleLabel("KITCHEN")}</option>
+                    <option value="ADMIN">{getRoleLabel("ADMIN")}</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-semibold text-neutral-700 dark:text-neutral-300 mb-1">
-                    {editingUser ? "Đổi Mật Khẩu (Để trống nếu không đổi)" : "Mật Khẩu Khởi Tạo *"}
+                    {editingUser
+                      ? t("userManagementChangePasswordField")
+                      : t("userManagementInitialPasswordField")}
                   </label>
                   <Input
                     type="password"
-                    placeholder={editingUser ? "••••••••" : "Nhập mật khẩu mới..."}
+                    placeholder={editingUser ? "••••••••" : t("userManagementPasswordPlaceholder")}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   />
@@ -400,16 +429,18 @@ export default function UserManagement() {
                   className="w-5 h-5 rounded text-primary-600 focus:ring-primary-500"
                 />
                 <label htmlFor="user_active" className="text-sm font-semibold text-neutral-700 dark:text-neutral-300 cursor-pointer">
-                  Kích hoạt tài khoản ngay (Cho phép đăng nhập)
+                  {t("userManagementActivateNow")}
                 </label>
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-neutral-100 dark:border-neutral-700">
                 <ButtonThird type="button" onClick={() => setIsModalOpen(false)}>
-                  Hủy Bỏ
+                  {t("userManagementCancel")}
                 </ButtonThird>
                 <ButtonPrimary type="submit">
-                  {editingUser ? "Lưu Thay Đổi" : "Tạo Tài Khoản"}
+                  {editingUser
+                    ? t("userManagementSaveChanges")
+                    : t("userManagementCreateAccount")}
                 </ButtonPrimary>
               </div>
             </form>

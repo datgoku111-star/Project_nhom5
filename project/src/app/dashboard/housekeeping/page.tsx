@@ -6,6 +6,8 @@ import ButtonPrimary from "@/shared/ButtonPrimary";
 import ButtonThird from "@/shared/ButtonThird";
 import { useAuth } from "@/lib/auth-context";
 import { useRouter } from "next/navigation";
+import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export interface RoomTurnover {
   id: string;
@@ -20,8 +22,12 @@ export interface RoomTurnover {
 }
 
 export default function HousekeepingDashboardHub() {
+  const { t, i18n } = useTranslation();
   const { user, isLoading: authLoading } = useAuth();
   const router = useRouter();
+  const formattingLocale = toFormattingLocale(
+    isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE,
+  );
   const [activeWorkflow, setActiveWorkflow] = useState<"DIRTY_FLOW" | "MAINTENANCE_FLOW" | "IN_USE_FLOW" | "AVAILABLE_FLOW" | "LAUNDRY_FLOW" | "CHECKOUT_FLOW">("DIRTY_FLOW");
     const [checkoutRequests, setCheckoutRequests] = useState<any[]>([]);
   const [reportingRoomId, setReportingRoomId] = useState<string | null>(null);
@@ -54,7 +60,7 @@ export default function HousekeepingDashboardHub() {
     }
     
     if (allDamages.length === 0) {
-      alert("Vui lòng chọn ít nhất một mục hỏng hóc hoặc nhập tùy chỉnh.");
+      alert(t("housekeepingSelectDamage"));
       return;
     }
     
@@ -76,7 +82,7 @@ export default function HousekeepingDashboardHub() {
         })
       });
       
-      if (!res.ok) throw new Error("Failed to report incident");
+      if (!res.ok) throw new Error(t("housekeepingReportIncidentFailed"));
       
       await changeStatus(reportingRoomId, "MAINTENANCE", `Báo hỏng: ${description}`);
       setReportingRoomId(null);
@@ -84,7 +90,7 @@ export default function HousekeepingDashboardHub() {
       setCustomDamageName("");
       setCustomDamagePrice("");
     } catch (err) {
-      alert("Lỗi khi báo hỏng: " + (err as Error).message);
+      alert(t("housekeepingReportDamageError", { message: (err as Error).message }));
     } finally {
       setIsSubmittingDamage(false);
     }
@@ -113,7 +119,7 @@ export default function HousekeepingDashboardHub() {
         setCheckoutRequests(coData);
       }
 
-      if (!res.ok) throw new Error("Không thể tải trạng thái buồng phòng");
+      if (!res.ok) throw new Error(t("housekeepingLoadRoomsFailed"));
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
         setRooms(data);
@@ -166,7 +172,7 @@ export default function HousekeepingDashboardHub() {
       if (res.ok) {
         fetchLaundryOrders();
       } else {
-        alert("Không thể cập nhật trạng thái đơn giặt là.");
+        alert(t("housekeepingLaundryUpdateFailed"));
       }
     } catch (err) {
       console.error("Failed to update laundry status:", err);
@@ -188,7 +194,8 @@ export default function HousekeepingDashboardHub() {
       prev.map((r) => {
         if (r.id === roomId) {
           const finalNotes = additionalNotes !== undefined ? additionalNotes : r.notes;
-          const updatedTime = newStatus === "AVAILABLE" ? "Vừa xong (" + new Date().toLocaleTimeString("vi-VN", { hour: "2-digit", minute: "2-digit" }) + ")" : r.last_cleaned;
+          const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+          const updatedTime = newStatus === "AVAILABLE" ? t("housekeepingJustFinished", { time: new Date().toLocaleTimeString(toFormattingLocale(language), { hour: "2-digit", minute: "2-digit" }) }) : r.last_cleaned;
           return { ...r, status: newStatus, notes: finalNotes, last_cleaned: updatedTime };
         }
         return r;
@@ -205,12 +212,12 @@ export default function HousekeepingDashboardHub() {
         if (!res.ok) {
           const errData = await res.json();
           setRooms(backupRooms);
-          alert(`Lỗi cập nhật: ${errData.error || "Yêu cầu bị hệ thống từ chối."}`);
+          alert(t("housekeepingUpdateError", { message: errData.error || t("housekeepingRequestRejected") }));
         }
       } catch (err) {
         console.error("Failed status change:", err);
         setRooms(backupRooms);
-        alert("Lỗi kết nối mạng, không thể lưu trạng thái mới.");
+        alert(t("housekeepingNetworkError"));
       }
     }
   };
@@ -225,15 +232,15 @@ export default function HousekeepingDashboardHub() {
     let estimatedCharge = 0;
 
     if (hasDamage) {
-      damageDescription = prompt("Nhập mô tả đồ đạc bị hỏng (VD: Vỡ bình hoa, rách rèm...):") || "";
+      damageDescription = prompt(t("housekeepingDamageDescriptionPrompt")) || "";
       if (!damageDescription.trim()) {
-        alert("Bạn phải nhập mô tả đồ đạc hỏng.");
+        alert(t("housekeepingDamageDescriptionRequired"));
         return;
       }
-      const chargeStr = prompt("Nhập số tiền ước tính đền bù (VND):", "0");
+      const chargeStr = prompt(t("housekeepingEstimatedChargePrompt"), "0");
       estimatedCharge = parseInt(chargeStr || "0", 10);
       if (isNaN(estimatedCharge) || estimatedCharge < 0) {
-        alert("Số tiền không hợp lệ.");
+        alert(t("housekeepingInvalidAmount"));
         return;
       }
     }
@@ -245,15 +252,15 @@ export default function HousekeepingDashboardHub() {
         body: JSON.stringify({ bookingId, roomId, hasDamage, damageDescription, estimatedCharge }),
       });
       if (res.ok) {
-        alert("Đã hoàn tất kiểm tra phòng.");
+        alert(t("housekeepingInspectionCompleted"));
         fetchRooms();
       } else {
         const err = await res.json();
-        alert(`Error: ${err.error}`);
+        alert(t("housekeepingInspectionError", { message: err.error }));
       }
     } catch (err) {
       console.error(err);
-      alert("Error completing inspection");
+      alert(t("housekeepingInspectionFailed"));
     }
   };
 
@@ -267,13 +274,13 @@ export default function HousekeepingDashboardHub() {
           </div>
           <div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-neutral-900 dark:text-white flex items-center gap-3">
-              Housekeeping Operations Hub
+              {t("housekeepingTitle")}
               <span className="text-xs font-bold px-3 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300">
-                ● 4 Luồng Nghiệp Vụ Chuyên Biệt
+                {t("housekeepingSpecializedFlows")}
               </span>
             </h1>
             <p className="text-neutral-500 dark:text-neutral-400 text-sm mt-1">
-              Phân chia riêng từng luồng: Dọn phòng trả, Sửa chữa bảo trì, Chăm sóc phòng đang ở và Kiểm duyệt phòng sẵn sàng.
+              {t("housekeepingSubtitle")}
             </p>
           </div>
         </div>
@@ -281,7 +288,7 @@ export default function HousekeepingDashboardHub() {
         <div className="flex items-center gap-3">
           <ButtonThird onClick={fetchRooms} sizeClass="px-4 py-2.5">
             <RefreshCw className="w-4 h-4 mr-2" />
-            Làm Mới Dữ Liệu
+            {t("carOrdersReload")}
           </ButtonThird>
         </div>
       </div>
@@ -298,12 +305,12 @@ export default function HousekeepingDashboardHub() {
         >
           <div className="flex items-center justify-between">
             <p className={`text-sm font-bold ${activeWorkflow === "CHECKOUT_FLOW" ? "text-white" : "text-purple-800 dark:text-purple-300"}`}>
-              🟣 CHECKOUT INSPECT
+              🟣 {t("housekeepingCheckoutInspect")}
             </p>
             <AlertTriangle className="w-6 h-6" />
           </div>
           <h3 className="text-3xl md:text-4xl font-extrabold mt-2">{checkoutRequests.length}</h3>
-          <p className={`text-xs mt-1 ${activeWorkflow === "CHECKOUT_FLOW" ? "text-purple-100" : "text-neutral-500"}`}>Checkout requests</p>
+          <p className={`text-xs mt-1 ${activeWorkflow === "CHECKOUT_FLOW" ? "text-purple-100" : "text-neutral-500"}`}>{t("housekeepingCheckoutRequests")}</p>
         </div>
 
         <div
@@ -316,12 +323,12 @@ export default function HousekeepingDashboardHub() {
         >
           <div className="flex items-center justify-between">
             <p className={`text-sm font-bold ${activeWorkflow === "DIRTY_FLOW" ? "text-white" : "text-amber-800 dark:text-amber-300"}`}>
-              🟡 Luồng 1: Chờ Dọn (DIRTY)
+              🟡 {t("housekeepingDirtyFlow")}
             </p>
             <Sparkles className="w-6 h-6" />
           </div>
           <h3 className="text-3xl md:text-4xl font-extrabold mt-2">{dirtyRooms.length}</h3>
-          <p className={`text-xs mt-1 ${activeWorkflow === "DIRTY_FLOW" ? "text-amber-100" : "text-neutral-500"}`}>Khách vừa trả phòng</p>
+          <p className={`text-xs mt-1 ${activeWorkflow === "DIRTY_FLOW" ? "text-amber-100" : "text-neutral-500"}`}>{t("housekeepingRecentlyCheckedOut")}</p>
         </div>
 
         <div
@@ -334,12 +341,12 @@ export default function HousekeepingDashboardHub() {
         >
           <div className="flex items-center justify-between">
             <p className={`text-sm font-bold ${activeWorkflow === "MAINTENANCE_FLOW" ? "text-white" : "text-red-800 dark:text-red-300"}`}>
-              🔴 Luồng 2: Bảo Trì (MAINTENANCE)
+              🔴 {t("housekeepingMaintenanceFlow")}
             </p>
             <Wrench className="w-6 h-6" />
           </div>
           <h3 className="text-3xl md:text-4xl font-extrabold mt-2">{maintenanceRooms.length}</h3>
-          <p className={`text-xs mt-1 ${activeWorkflow === "MAINTENANCE_FLOW" ? "text-red-100" : "text-neutral-500"}`}>Đang sửa chữa kỹ thuật</p>
+          <p className={`text-xs mt-1 ${activeWorkflow === "MAINTENANCE_FLOW" ? "text-red-100" : "text-neutral-500"}`}>{t("housekeepingTechnicalRepair")}</p>
         </div>
 
         <div
@@ -352,12 +359,12 @@ export default function HousekeepingDashboardHub() {
         >
           <div className="flex items-center justify-between">
             <p className={`text-sm font-bold ${activeWorkflow === "IN_USE_FLOW" ? "text-white" : "text-blue-800 dark:text-blue-300"}`}>
-              🔵 Luồng 3: Đang Ở (IN_USE)
+              🔵 {t("housekeepingInUseFlow")}
             </p>
             <Layers className="w-6 h-6" />
           </div>
           <h3 className="text-3xl md:text-4xl font-extrabold mt-2">{inUseRooms.length}</h3>
-          <p className={`text-xs mt-1 ${activeWorkflow === "IN_USE_FLOW" ? "text-blue-100" : "text-neutral-500"}`}>Dọn vệ sinh lưu trú hàng ngày</p>
+          <p className={`text-xs mt-1 ${activeWorkflow === "IN_USE_FLOW" ? "text-blue-100" : "text-neutral-500"}`}>{t("housekeepingDailyCleaning")}</p>
         </div>
 
         <div
@@ -370,12 +377,12 @@ export default function HousekeepingDashboardHub() {
         >
           <div className="flex items-center justify-between">
             <p className={`text-sm font-bold ${activeWorkflow === "AVAILABLE_FLOW" ? "text-white" : "text-emerald-800 dark:text-emerald-300"}`}>
-              🟢 Luồng 4: Sẵn Sàng (AVAILABLE)
+              🟢 {t("housekeepingAvailableFlow")}
             </p>
             <CheckCircle2 className="w-6 h-6" />
           </div>
           <h3 className="text-3xl md:text-4xl font-extrabold mt-2">{availableRooms.length}</h3>
-          <p className={`text-xs mt-1 ${activeWorkflow === "AVAILABLE_FLOW" ? "text-emerald-100" : "text-neutral-500"}`}>Phòng sạch sẵn sàng đón khách</p>
+          <p className={`text-xs mt-1 ${activeWorkflow === "AVAILABLE_FLOW" ? "text-emerald-100" : "text-neutral-500"}`}>{t("housekeepingCleanReady")}</p>
         </div>
       </div>
 
@@ -390,7 +397,7 @@ export default function HousekeepingDashboardHub() {
           }`}
         >
           <Sparkles className="w-4 h-4" />
-          Luồng 1: Dọn Buồng Trả (Check-Out ➔ DIRTY ➔ AVAILABLE) ({dirtyRooms.length})
+          {t("housekeepingDirtyTab", { count: dirtyRooms.length })}
         </button>
 
         <button
@@ -402,7 +409,7 @@ export default function HousekeepingDashboardHub() {
           }`}
         >
           <Wrench className="w-4 h-4" />
-          Luồng 2: Sửa Chữa Bảo Trì (MAINTENANCE ➔ Nghiệm Thu) ({maintenanceRooms.length})
+          {t("housekeepingMaintenanceTab", { count: maintenanceRooms.length })}
         </button>
 
         <button
@@ -414,7 +421,7 @@ export default function HousekeepingDashboardHub() {
           }`}
         >
           <ClipboardList className="w-4 h-4" />
-          Luồng 3: Dọn Phòng Hàng Ngày (IN_USE) ({inUseRooms.length})
+          {t("housekeepingInUseTab", { count: inUseRooms.length })}
         </button>
 
         <button
@@ -426,7 +433,7 @@ export default function HousekeepingDashboardHub() {
           }`}
         >
           <CheckCheck className="w-4 h-4" />
-          Luồng 4: Rà Soát Sẵn Sàng (AVAILABLE) ({availableRooms.length})
+          {t("housekeepingAvailableTab", { count: availableRooms.length })}
         </button>
 
         <button
@@ -438,7 +445,7 @@ export default function HousekeepingDashboardHub() {
           }`}
         >
           <Shirt className="w-4 h-4" />
-          Luồng 5: Dịch Vụ Giặt Là (Laundry Orders) ({laundryOrders.filter(o => ["assigned", "washing", "ready_to_receive", "delivering"].includes(o.status_text)).length})
+          {t("housekeepingLaundryTab", { count: laundryOrders.filter(o => ["assigned", "washing", "ready_to_receive", "delivering"].includes(o.status_text)).length })}
         </button>
       </div>
 
@@ -447,16 +454,16 @@ export default function HousekeepingDashboardHub() {
         <div className="bg-white dark:bg-neutral-800 rounded-3xl p-6 md:p-8 shadow-sm border border-neutral-100 dark:border-neutral-700 space-y-6">
           <div className="border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-              🟣 CHECKOUT INSPECTION FLOW
+              🟣 {t("housekeepingCheckoutInspectionTitle")}
             </h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Guest requested checkout. Receptionist dispatched you to inspect for damages or lost items before payment.
+              {t("housekeepingCheckoutInspectionDesc")}
             </p>
           </div>
 
           {checkoutRequests.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
-              No checkout inspection requests at the moment.
+              {t("housekeepingNoCheckoutRequests")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -465,14 +472,14 @@ export default function HousekeepingDashboardHub() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="bg-purple-600 text-white font-extrabold px-3.5 py-1.5 rounded-2xl text-base shadow">
-                        Phòng {req.room?.room_number}
+                        {t("bookingsRoomNumber", { number: req.room?.room_number })}
                       </span>
                       <h4 className="text-lg font-bold text-neutral-900 dark:text-white mt-2">
                         {req.user?.full_name || req.guest?.full_name}
                       </h4>
                     </div>
                     <span className="text-xs font-bold text-purple-700 dark:text-purple-300 bg-purple-200 dark:bg-purple-900/60 px-3 py-1 rounded-full uppercase">
-                      Chờ Kiểm Tra
+                      {t("housekeepingAwaitingInspection")}
                     </span>
                   </div>
 
@@ -482,14 +489,14 @@ export default function HousekeepingDashboardHub() {
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl transition-all shadow flex items-center justify-center gap-2 text-sm"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Phòng Bình Thường
+                      {t("housekeepingRoomNormal")}
                     </button>
                     <button
                       onClick={() => handleCompleteInspection(req.id, req.room_id, true)}
                       className="bg-red-100 dark:bg-red-900/40 hover:bg-red-200 text-red-800 dark:text-red-300 font-semibold py-3 px-4 rounded-2xl transition-all text-sm flex items-center gap-1.5"
                     >
                       <AlertTriangle className="w-4 h-4" />
-                      Báo Hỏng / Mất Đồ
+                      {t("housekeepingReportDamageLoss")}
                     </button>
                   </div>
                 </div>
@@ -504,16 +511,16 @@ export default function HousekeepingDashboardHub() {
         <div className="bg-white dark:bg-neutral-800 rounded-3xl p-6 md:p-8 shadow-sm border border-neutral-100 dark:border-neutral-700 space-y-6">
           <div className="border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-              🟡 LUỒNG 1: QUY TRÌNH DỌN DẸP PHÒNG KHÁCH VỪA TRẢ (Check-Out Turnover)
+              🟡 {t("housekeepingDirtySectionTitle")}
             </h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Khi khách làm thủ tục Check-Out tại Lễ tân, phòng lập tức chuyển sang trạng thái <strong>Chưa Dọn (DIRTY)</strong>. Nhân viên buồng phòng dọn dẹp, thay ga, bổ sung tiện ích rồi bấm <strong>"✨ HOÀN TẤT DỌN DẸP"</strong> để bàn giao ngay cho Lễ tân đón khách mới.
+              {t("housekeepingDirtySectionDesc")}
             </p>
           </div>
 
           {dirtyRooms.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
-              🎉 Tuyệt vời! Tất cả buồng phòng trả đều đã được dọn dẹp sạch sẽ và bàn giao cho Lễ tân.
+              {t("housekeepingNoDirtyRooms")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -522,19 +529,19 @@ export default function HousekeepingDashboardHub() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="bg-amber-500 text-white font-extrabold px-3.5 py-1.5 rounded-2xl text-base shadow">
-                        Phòng {room.room_number}
+                        {t("bookingsRoomNumber", { number: room.room_number })}
                       </span>
                       <h4 className="text-lg font-bold text-neutral-900 dark:text-white mt-2">
-                        {room.room_type?.name || "Deluxe Ocean"} — Tầng {room.floor}
+                        {room.room_type?.name || "Deluxe Ocean"} — {t("adminRoomsFloorValue", { floor: room.floor })}
                       </h4>
                     </div>
                     {room.status === "DIRTY" ? (
                       <span className="text-xs font-bold text-amber-700 dark:text-amber-300 bg-amber-200 dark:bg-amber-900/60 px-3 py-1 rounded-full uppercase">
-                        Chờ Dọn (DIRTY)
+                        {t("adminRoomsStatusDirty")}
                       </span>
                     ) : (
                       <span className="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-200 dark:bg-blue-900/60 px-3 py-1 rounded-full uppercase animate-pulse">
-                        Đang Dọn Dẹp (CLEANING)
+                        {t("adminRoomsStatusCleaning")}
                       </span>
                     )}
                   </div>
@@ -543,11 +550,11 @@ export default function HousekeepingDashboardHub() {
                     {room.notes && (
                       <div className="bg-white dark:bg-neutral-900 p-3 rounded-2xl text-xs text-neutral-700 dark:text-neutral-300 border border-amber-200 dark:border-amber-800/40 flex items-start gap-2">
                         <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                        <div><strong>Yêu cầu / Ghi chú:</strong> {room.notes}</div>
+                        <div><strong>{t("housekeepingRequestsNotes")}:</strong> {room.notes}</div>
                       </div>
                     )}
                     <div className="text-xs text-neutral-400 flex items-center gap-1">
-                      <Clock className="w-3.5 h-3.5" /> Lần dọn gần nhất: {room.last_cleaned || "Hôm qua"}
+                      <Clock className="w-3.5 h-3.5" /> {t("housekeepingLastCleaned")}: {room.last_cleaned || t("housekeepingYesterday")}
                     </div>
                   </div>
 
@@ -559,14 +566,14 @@ export default function HousekeepingDashboardHub() {
                           className="flex-1 bg-blue-500 hover:bg-blue-600 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow flex items-center justify-center gap-1.5 text-xs"
                         >
                           <Zap className="w-3.5 h-3.5" />
-                          Dọn nhanh 20p
+                          {t("housekeepingQuickClean")}
                         </button>
                         <button
                           onClick={() => changeStatus(room.id, "CLEANING", "Đang dọn kỹ (45p)")}
                           className="flex-1 bg-indigo-500 hover:bg-indigo-600 text-white font-bold py-2.5 px-3 rounded-xl transition-all shadow flex items-center justify-center gap-1.5 text-xs"
                         >
                           <SprayCan className="w-3.5 h-3.5" />
-                          Dọn kỹ 45p
+                          {t("housekeepingDeepClean")}
                         </button>
                       </div>
                     )}
@@ -577,7 +584,7 @@ export default function HousekeepingDashboardHub() {
                         className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-2xl transition-all shadow flex items-center justify-center gap-2 text-sm"
                       >
                         <Sparkles className="w-4 h-4" />
-                        ✨ HOÀN TẤT DỌN DẸP (➔ AVAILABLE)
+                        ✨ {t("housekeepingCompleteCleaning")}
                       </button>
                     )}
                     
@@ -585,10 +592,10 @@ export default function HousekeepingDashboardHub() {
                       <button
                         onClick={() => setReportingRoomId(room.id)}
                         className="bg-red-100 dark:bg-red-900/40 hover:bg-red-200 text-red-800 dark:text-red-300 font-semibold py-2 px-4 rounded-xl transition-all text-xs flex items-center justify-center gap-1.5 mx-auto w-full mt-2"
-                        title="Báo lỗi kỹ thuật / chuyển sang Luồng 2"
+                        title={t("housekeepingReportTechnicalTitle")}
                       >
                         <Wrench className="w-3.5 h-3.5" />
-                        Báo Hỏng / Bảo trì
+                        {t("housekeepingReportMaintenance")}
                       </button>
                     )}
                   </div>
@@ -604,16 +611,16 @@ export default function HousekeepingDashboardHub() {
         <div className="bg-white dark:bg-neutral-800 rounded-3xl p-6 md:p-8 shadow-sm border border-neutral-100 dark:border-neutral-700 space-y-6">
           <div className="border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-              🔴 LUỒNG 2: QUY TRÌNH QUẢN LÝ MAINTENANCE & SỬA CHỮA SỰ CỐ (Maintenance & Repairs)
+              🔴 {t("housekeepingMaintenanceSectionTitle")}
             </h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Các buồng phòng gặp sự cố kỹ thuật (điện, nước, khóa cửa, điều hòa) bị khóa tạm thời khỏi danh sách đặt phòng của Lễ tân. Khi kỹ thuật viên sửa chữa xong và vệ sinh sạch, nhấn <strong>"🛠️ Nghiệm Thu Sửa Chữa Xong"</strong> để khôi phục phòng về trạng thái <strong>AVAILABLE</strong>.
+              {t("housekeepingMaintenanceSectionDesc")}
             </p>
           </div>
 
           {maintenanceRooms.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
-              ✅ Tất cả thiết bị kỹ thuật trong các phòng đều hoạt động hoàn hảo! Không có phòng bảo trì.
+              {t("housekeepingNoMaintenance")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -622,28 +629,28 @@ export default function HousekeepingDashboardHub() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="bg-red-600 text-white font-extrabold px-3.5 py-1.5 rounded-2xl text-base shadow">
-                        Phòng {room.room_number}
+                        {t("bookingsRoomNumber", { number: room.room_number })}
                       </span>
                       <h4 className="text-lg font-bold text-neutral-900 dark:text-white mt-2">
-                        {room.room_type?.name || "Presidential Suite"} — Tầng {room.floor}
+                        {room.room_type?.name || "Presidential Suite"} — {t("adminRoomsFloorValue", { floor: room.floor })}
                       </h4>
                     </div>
                     <span className="text-xs font-bold text-red-700 dark:text-red-300 bg-red-200 dark:bg-red-900/60 px-3 py-1 rounded-full uppercase">
-                      Đang Bảo Trì (LOCKED)
+                      {t("housekeepingMaintenanceLocked")}
                     </span>
                   </div>
 
                   <div className="bg-white dark:bg-neutral-900 p-3.5 rounded-2xl text-sm text-red-900 dark:text-red-200 border border-red-200 dark:border-red-800/40 flex items-start gap-2.5">
                     <Wrench className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="font-bold">Sự cố kỹ thuật:</strong> {room.notes || "Đang kiểm tra hệ thống điện nước"}
+                      <strong className="font-bold">{t("housekeepingTechnicalIncident")}:</strong> {room.notes || t("housekeepingCheckingUtilities")}
                     </div>
                   </div>
 
                   <div className="flex items-center gap-3 pt-2">
                     {user?.role === "HOUSEKEEPING" ? (
                       <div className="text-[11px] text-neutral-500 italic text-center w-full py-2 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
-                        Chỉ Kỹ thuật viên / Giám sát mới được Nghiệm thu bảo trì
+                        {t("housekeepingMaintenancePermission")}
                       </div>
                     ) : (
                       <button
@@ -651,7 +658,7 @@ export default function HousekeepingDashboardHub() {
                         className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3.5 px-4 rounded-2xl transition-all shadow flex items-center justify-center gap-2 text-sm"
                       >
                         <CheckCheck className="w-5 h-5" />
-                        🛠️ NGHIỆM THU SỬA CHỮA XONG (➔ AVAILABLE)
+                        🛠️ {t("housekeepingCompleteMaintenance")}
                       </button>
                     )}
                   </div>
@@ -667,16 +674,16 @@ export default function HousekeepingDashboardHub() {
         <div className="bg-white dark:bg-neutral-800 rounded-3xl p-6 md:p-8 shadow-sm border border-neutral-100 dark:border-neutral-700 space-y-6">
           <div className="border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-              🔵 LUỒNG 3: QUY TRÌNH CHĂM SÓC PHÒNG ĐANG LƯU TRÚ (Stayover Make-Up Room)
+              🔵 {t("housekeepingStayoverSectionTitle")}
             </h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Phòng đang có khách ở (<strong>IN_USE</strong>) cần được làm vệ sinh hàng ngày, đổ rác, gấp chăn màn và bổ sung nước khoáng/khăn tắm/amenities theo yêu cầu của khách hoặc tiêu chuẩn khách sạn.
+              {t("housekeepingStayoverSectionDesc")}
             </p>
           </div>
 
           {inUseRooms.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
-              Hiện tại không có phòng nào có khách lưu trú cần dọn dẹp hàng ngày.
+              {t("housekeepingNoStayoverRooms")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -685,44 +692,44 @@ export default function HousekeepingDashboardHub() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="bg-blue-600 text-white font-extrabold px-3.5 py-1.5 rounded-2xl text-base shadow">
-                        Phòng {room.room_number}
+                        {t("bookingsRoomNumber", { number: room.room_number })}
                       </span>
                       <h4 className="text-lg font-bold text-neutral-900 dark:text-white mt-2">
-                        {room.room_type?.name || "Family King"} — Tầng {room.floor}
+                        {room.room_type?.name || "Family King"} — {t("adminRoomsFloorValue", { floor: room.floor })}
                       </h4>
                     </div>
                     <span className="text-xs font-bold text-blue-700 dark:text-blue-300 bg-blue-200 dark:bg-blue-900/60 px-3 py-1 rounded-full uppercase">
-                      Đang Có Khách (IN_USE)
+                      {t("adminRoomsStatusInUse")}
                     </span>
                   </div>
 
                   {room.notes && (
                     <div className="bg-white dark:bg-neutral-900 p-3 rounded-2xl text-xs text-neutral-700 dark:text-neutral-300 border border-blue-200 dark:border-blue-800/40 flex items-start gap-2">
                       <ClipboardList className="w-4 h-4 text-blue-600 shrink-0 mt-0.5" />
-                      <div><strong>Yêu cầu của khách:</strong> {room.notes}</div>
+                      <div><strong>{t("housekeepingGuestRequest")}:</strong> {room.notes}</div>
                     </div>
                   )}
 
                   <div className="flex items-center gap-3 pt-2">
                     <button
                       onClick={() => {
-                        alert(`Đã ghi nhận hoàn tất dọn phòng lưu trú hàng ngày cho Phòng ${room.room_number}! Bổ sung 2 nước khoáng & thay khăn.`);
+                        alert(t("housekeepingDailyCleaningSuccess", { room: room.room_number }));
                         changeStatus(room.id, "IN_USE", "Đã làm vệ sinh lưu trú hôm nay");
                       }}
                       className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-2xl transition-all shadow flex items-center justify-center gap-2 text-sm"
                     >
                       <CheckCircle2 className="w-4 h-4" />
-                      Xác Nhận Đã Dọn Hàng Ngày (Make-Up Done)
+                      {t("housekeepingConfirmDailyCleaning")}
                     </button>
                     <button
                       onClick={() => {
-                        const reason = prompt("Nhập sự cố phát hiện trong phòng khách đang ở:", "Hỏng vòi nước nhà vệ sinh");
+                        const reason = prompt(t("housekeepingStayoverIssuePrompt"), t("housekeepingStayoverIssueDefault"));
                         if (reason !== null) changeStatus(room.id, "MAINTENANCE", reason);
                       }}
                       className="bg-red-100 dark:bg-red-900/40 hover:bg-red-200 text-red-800 dark:text-red-300 font-semibold py-3 px-3 rounded-2xl transition-all text-xs"
-                      title="Báo lỗi bảo trì"
+                      title={t("housekeepingReportMaintenance")}
                     >
-                      Báo Hỏng
+                      {t("housekeepingReportDamage")}
                     </button>
                   </div>
                 </div>
@@ -737,16 +744,16 @@ export default function HousekeepingDashboardHub() {
         <div className="bg-white dark:bg-neutral-800 rounded-3xl p-6 md:p-8 shadow-sm border border-neutral-100 dark:border-neutral-700 space-y-6">
           <div className="border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
-              🟢 LUỒNG 4: RÀ SOÁT & ĐẢM BẢO CHẤT LƯỢNG PHÒNG TRỐNG SẴN SÀNG (Available Audit)
+              🟢 {t("housekeepingAvailableSectionTitle")}
             </h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Danh sách buồng phòng đã sạch sẽ và đang hiển thị trên hệ thống Lễ tân để đón khách mới. Giám sát buồng phòng (Supervisor) kiểm tra định kỳ lần cuối trước khi khách Check-In.
+              {t("housekeepingAvailableSectionDesc")}
             </p>
           </div>
 
           {availableRooms.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
-              Hiện không còn buồng phòng trống nào.
+              {t("housekeepingNoAvailableRooms")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -755,25 +762,25 @@ export default function HousekeepingDashboardHub() {
                   <div className="flex items-start justify-between">
                     <div>
                       <span className="bg-emerald-600 text-white font-extrabold px-3.5 py-1.5 rounded-2xl text-base shadow">
-                        Phòng {room.room_number}
+                        {t("bookingsRoomNumber", { number: room.room_number })}
                       </span>
                       <h4 className="text-base font-bold text-neutral-900 dark:text-white mt-2">
-                        {room.room_type?.name || "Deluxe Ocean"} — Tầng {room.floor}
+                        {room.room_type?.name || "Deluxe Ocean"} — {t("adminRoomsFloorValue", { floor: room.floor })}
                       </h4>
                     </div>
                     <span className="text-xs font-bold text-emerald-800 dark:text-emerald-300 bg-emerald-200 dark:bg-emerald-900/60 px-2.5 py-1 rounded-full uppercase">
-                      Sẵn Sàng
+                      {t("adminRoomsStatusAvailable")}
                     </span>
                   </div>
 
                   <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                    <div>⏱️ Lần kiểm tra cuối: {room.last_cleaned || "Sáng nay"}</div>
+                    <div>⏱️ {t("housekeepingLastInspection")}: {room.last_cleaned || t("housekeepingThisMorning")}</div>
                     {room.notes && <div className="mt-1 text-emerald-800 dark:text-emerald-300 font-medium">✓ {room.notes}</div>}
                   </div>
 
                   {user?.role === "HOUSEKEEPING" ? (
                     <div className="text-[11px] text-neutral-550 italic text-center w-full py-2 bg-emerald-100/40 dark:bg-emerald-950/20 rounded-xl border border-emerald-200/30">
-                      Chỉ Giám sát/Lễ tân mới được đổi trạng thái phòng Sẵn sàng
+                      {t("housekeepingAvailablePermission")}
                     </div>
                   ) : (
                     <div className="pt-2 border-t border-emerald-200 dark:border-emerald-800/40 flex justify-between gap-2 w-full">
@@ -781,13 +788,13 @@ export default function HousekeepingDashboardHub() {
                         onClick={() => changeStatus(room.id, "DIRTY", "Yêu cầu dọn lại trước khi đón khách đoàn")}
                         className="text-xs font-semibold text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 py-2 px-3 rounded-xl transition-all"
                       >
-                        Dọn Lại (➔ DIRTY)
+                        {t("housekeepingCleanAgain")}
                       </button>
                       <button
                         onClick={() => changeStatus(room.id, "MAINTENANCE", "Phát hiện lỗi kỹ thuật đột xuất")}
                         className="text-xs font-semibold text-red-700 dark:text-red-400 bg-red-100 dark:bg-red-900/30 hover:bg-red-200 py-2 px-3 rounded-xl transition-all"
                       >
-                        Khóa Bảo Trì
+                        {t("housekeepingLockMaintenance")}
                       </button>
                     </div>
                   )}
@@ -804,21 +811,21 @@ export default function HousekeepingDashboardHub() {
           <div className="border-b border-neutral-100 dark:border-neutral-700 pb-4">
             <h2 className="text-xl font-bold text-neutral-900 dark:text-white flex items-center gap-2">
               <Shirt className="w-5 h-5 text-indigo-500" />
-              👕 LUỒNG 5: QUY TRÌNH XỬ LÝ YÊU CẦU GIẶT LÀ (laundry Operations)
+              👕 {t("housekeepingLaundrySectionTitle")}
             </h2>
             <p className="text-xs text-neutral-500 mt-1">
-              Nhận đồ từ phòng khách, giặt hấp sấy ủi và bàn giao trả quần áo sạch cho khách. Mọi hoạt động được đồng bộ trực tiếp tới Lễ Tân và Khách Hàng.
+              {t("housekeepingLaundrySectionDesc")}
             </p>
           </div>
 
           {laundryLoading ? (
             <div className="text-center py-10">
               <div className="w-6 h-6 border-2 border-primary-6000 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
-              <p className="text-xs text-neutral-450">Đang tải danh sách đơn giặt là...</p>
+              <p className="text-xs text-neutral-450">{t("laundryOrdersLoading")}</p>
             </div>
           ) : laundryOrders.length === 0 ? (
             <div className="p-12 text-center text-neutral-500 bg-neutral-50 dark:bg-neutral-900/50 rounded-2xl border border-dashed border-neutral-200 dark:border-neutral-700">
-              Chưa có đơn yêu cầu giặt là nào trong hệ thống.
+              {t("housekeepingNoLaundryOrders")}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -835,25 +842,25 @@ export default function HousekeepingDashboardHub() {
                 let cardBorder = "";
 
                 if (isAssigned) {
-                  statusBadge = "⏳ Chờ Buồng phòng thu gom đồ";
+                  statusBadge = `⏳ ${t("housekeepingLaundryWaitingPickup")}`;
                   cardBorder = "border-purple-300 dark:border-purple-800/50 bg-purple-50/20 dark:bg-purple-950/10";
                 } else if (isWashing) {
-                  statusBadge = "🌀 Đang giặt đồ (Washing)";
+                  statusBadge = `🌀 ${t("laundryOrdersStatusWashing")}`;
                   cardBorder = "border-amber-300 dark:border-amber-800/50 bg-amber-50/20 dark:bg-amber-950/10";
                 } else if (isWashed) {
-                  statusBadge = "👕 Đã giặt xong — Chờ khách ở phòng báo";
+                  statusBadge = `👕 ${t("housekeepingLaundryWashedWaitingGuest")}`;
                   cardBorder = "border-indigo-300 dark:border-indigo-800/50 bg-indigo-50/20 dark:bg-indigo-950/10";
                 } else if (isReadyToReceive) {
-                  statusBadge = "⏳ Chờ Lễ tân duyệt trả đồ";
+                  statusBadge = `⏳ ${t("laundryOrdersWaitingDeliveryApproval")}`;
                   cardBorder = "border-orange-300 dark:border-orange-800/50 bg-orange-50/20 dark:bg-orange-950/10 animate-pulse";
                 } else if (isDelivering) {
-                  statusBadge = "🚚 Đang trả đồ (Delivering)";
+                  statusBadge = `🚚 ${t("laundryOrdersStatusDelivering")}`;
                   cardBorder = "border-blue-300 dark:border-blue-800/50 bg-blue-50/20 dark:bg-blue-950/10 animate-bounce";
                 } else if (isDelivered) {
-                  statusBadge = "✅ Đã giao đồ thành công";
+                  statusBadge = `✅ ${t("laundryOrdersStatusDelivered")}`;
                   cardBorder = "border-emerald-300 dark:border-emerald-800/50 bg-emerald-50/20 dark:bg-emerald-950/10";
                 } else {
-                  statusBadge = "❌ Bị từ chối";
+                  statusBadge = `❌ ${t("carOrdersStatusRejected")}`;
                   cardBorder = "border-neutral-200 dark:border-neutral-700 bg-neutral-50 dark:bg-neutral-800/20";
                 }
 
@@ -862,10 +869,10 @@ export default function HousekeepingDashboardHub() {
                     <div className="flex items-start justify-between">
                       <div>
                         <span className="bg-neutral-800 text-white dark:bg-neutral-900 font-extrabold px-3 py-1 rounded-2xl text-xs shadow">
-                          Phòng {order.room_number || "P-VIP"}
+                          {t("bookingsRoomNumber", { number: order.room_number || "P-VIP" })}
                         </span>
                         <h4 className="text-base font-bold text-neutral-900 dark:text-white mt-3">
-                          Mã đơn: #{order.id.slice(0, 8).toUpperCase()}
+                          {t("kitchenOrderCode")}: #{order.id.slice(0, 8).toUpperCase()}
                         </h4>
                       </div>
                       <span className="text-[10px] font-black uppercase px-2.5 py-1 rounded-xl bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-700 shadow-sm text-neutral-600 dark:text-neutral-300">
@@ -875,29 +882,36 @@ export default function HousekeepingDashboardHub() {
 
                     <div className="text-xs space-y-2">
                       <div className="font-semibold text-neutral-700 dark:text-neutral-300">
-                        Loại dịch vụ: <span className="text-indigo-600 dark:text-indigo-400 font-black">{order.service_type}</span>
+                        {t("laundryOrdersServiceType")}: <span className="text-indigo-600 dark:text-indigo-400 font-black">{order.service_type}</span>
                       </div>
                       
                       {/* Items */}
                       <div className="bg-white/80 dark:bg-neutral-900/60 p-3 rounded-2xl border border-neutral-100 dark:border-neutral-850 space-y-1">
-                        <span className="text-[9px] text-neutral-400 font-bold uppercase block tracking-wider mb-1">Đồ cần giặt:</span>
+                        <span className="text-[9px] text-neutral-400 font-bold uppercase block tracking-wider mb-1">{t("laundryOrdersClothingList")}:</span>
                         {order.items?.map((it: any, i: number) => (
                           <div key={i} className="flex justify-between items-center text-xs">
                             <span className="font-semibold">{it.quantity}x {it.service?.name.replace("Laundry - ", "")}</span>
-                            <span className="text-neutral-500 font-mono text-[10px]">({(it.unit_price).toLocaleString("vi-VN")} đ/cái)</span>
+                            <span className="text-neutral-500 font-mono text-[10px]">
+                              ({t("laundryOrdersPricePerItem", {
+                                price: new Intl.NumberFormat(formattingLocale, {
+                                  style: "currency",
+                                  currency: "VND",
+                                }).format(it.unit_price),
+                              })})
+                            </span>
                           </div>
                         ))}
                       </div>
 
                       {order.customer_notes && (
                         <div className="p-3 bg-amber-500/10 rounded-2xl text-[11px] italic text-neutral-750 dark:text-neutral-300 border border-amber-500/20">
-                          <strong>Ghi chú của khách:</strong> {order.customer_notes}
+                          <strong>{t("laundryOrdersCustomerNotes")}:</strong> {order.customer_notes}
                         </div>
                       )}
                       
                       <div className="flex justify-between text-[11px] text-neutral-400 pt-2 border-t border-neutral-100 dark:border-neutral-850">
-                        <span>Đặt lúc: {new Date(order.created_at).toLocaleTimeString("vi-VN")} - {new Date(order.created_at).toLocaleDateString("vi-VN")}</span>
-                        <span className="font-bold text-red-600 dark:text-red-400">Tổng cộng: {order.total_amount?.toLocaleString("vi-VN")} đ</span>
+                        <span>{t("laundryOrdersOrderedAt")}: {new Date(order.created_at).toLocaleTimeString(formattingLocale)} - {new Date(order.created_at).toLocaleDateString(formattingLocale)}</span>
+                        <span className="font-bold text-red-600 dark:text-red-400">{t("bookingDetailGrandTotal")}: {new Intl.NumberFormat(toFormattingLocale(isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE), { style: "currency", currency: "VND" }).format(order.total_amount || 0)}</span>
                       </div>
                     </div>
 
@@ -908,7 +922,7 @@ export default function HousekeepingDashboardHub() {
                           onClick={() => handleUpdateLaundryStatus(order.id, "PENDING", "washing")}
                           className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 dark:bg-red-950/20 dark:text-red-400 border border-red-200 dark:border-red-900/50 font-bold py-2.5 px-4 rounded-xl transition-all flex items-center justify-center gap-2 text-xs"
                         >
-                          🌀 NHẬN ĐỒ VÀ ĐANG GIẶT
+                          🌀 {t("laundryOrdersStartWashing")}
                         </button>
                       )}
 
@@ -917,13 +931,13 @@ export default function HousekeepingDashboardHub() {
                           onClick={() => handleUpdateLaundryStatus(order.id, "PENDING", "washed")}
                           className="flex-1 bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2.5 px-4 rounded-xl transition-all shadow flex items-center justify-center gap-2 text-xs"
                         >
-                          👕 ĐÃ GIẶT XONG & SẴN SÀNG GIAO
+                          👕 {t("laundryOrdersMarkWashed")}
                         </button>
                       )}
 
                       {isReadyToReceive && (
                         <div className="text-[10px] text-neutral-500 italic text-center w-full py-2 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
-                          ⏳ Chờ Lễ tân duyệt giao đồ...
+                          ⏳ {t("laundryOrdersWaitingDeliveryApproval")}
                         </div>
                       )}
 
@@ -932,25 +946,25 @@ export default function HousekeepingDashboardHub() {
                           onClick={() => handleUpdateLaundryStatus(order.id, "COMPLETED", "delivered")}
                           className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 px-4 rounded-xl transition-all shadow flex items-center justify-center gap-2 text-xs animate-bounce"
                         >
-                          <Truck className="w-4 h-4" /> BÀN GIAO ĐỒ XONG (Trả Đồ)
+                          <Truck className="w-4 h-4" /> {t("laundryOrdersMarkDelivered")}
                         </button>
                       )}
 
                       {isWashed && (
                         <div className="text-[10px] text-neutral-500 italic text-center w-full py-2 bg-neutral-100 dark:bg-neutral-800 rounded-xl">
-                          ⏳ Đã giặt sạch. Đang đợi Khách hàng báo sẵn sàng ở phòng để mang lên trả...
+                          ⏳ {t("laundryOrdersWaitingCustomerReady")}
                         </div>
                       )}
 
                       {isDelivered && (
                         <div className="text-xs text-emerald-600 dark:text-emerald-400 font-bold text-center w-full py-2 bg-emerald-500/10 rounded-xl border border-emerald-500/20">
-                          ✓ Đã trả xong đồ & cộng nợ phòng thành công
+                          ✓ {t("laundryOrdersDeliveredAndCharged")}
                         </div>
                       )}
 
                       {isRejected && (
                         <div className="text-xs text-red-600 dark:text-red-400 font-bold text-center w-full py-2 bg-red-500/10 rounded-xl border border-red-500/20">
-                          Đơn hàng bị từ chối
+                          {t("laundryOrdersRejected")}
                         </div>
                       )}
                     </div>

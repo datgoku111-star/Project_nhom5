@@ -5,6 +5,7 @@ import NcPlayIcon from "@/shared/NcPlayIcon";
 import NcPlayIcon2 from "@/shared/NcPlayIcon2";
 import Image from "next/image";
 import React, { FC, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 export interface VideoType {
   id: string;
@@ -54,6 +55,7 @@ const SectionVideos: FC<SectionVideosProps> = ({
   videos = VIDEOS_DEMO,
   className = "",
 }) => {
+  const { t } = useTranslation();
   const [isPlay, setIsPlay] = useState(false);
   const [currentVideo, setCurrentVideo] = useState(0);
 
@@ -128,10 +130,9 @@ const SectionVideos: FC<SectionVideosProps> = ({
   return (
     <div className={`nc-SectionVideos ${className}`}>
       <Heading
-        desc="Check out our hottest videos. View more and share more new
-          perspectives on just about any topic. Everyone’s welcome."
+        desc={t("homeVideosSubHeading")}
       >
-        🎬 The Videos
+        {t("homeVideosHeading")}
       </Heading>
 
       <div className="flex flex-col relative sm:pr-4 sm:py-4 md:pr-6 md:py-6 xl:pr-14 xl:py-14 lg:flex-row">

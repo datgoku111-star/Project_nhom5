@@ -8,9 +8,10 @@ import type { ServiceOrder, OrderStatus } from "@/types/hotel";
 import useRealtimeOrders from "@/hooks/useRealtimeOrders";
 import { Clock, CheckCircle2, ChefHat, Bell, BellOff, Utensils, Filter } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 export default function OrdersQueuePage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -157,6 +158,14 @@ export default function OrdersQueuePage() {
   const pendingOrders = orders.filter((o) => o.status === "PENDING");
   const inProgressOrders = orders.filter((o) => o.status === "IN_PROGRESS");
   const completedOrders = orders.filter((o) => o.status === "COMPLETED");
+  const activeLanguage = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(activeLanguage);
+  const statusLabels: Record<string, string> = {
+    PENDING: t("bookingsStatusPending"),
+    IN_PROGRESS: t("ordersStatusInProgress"),
+    COMPLETED: t("kitchenStatusCompleted"),
+    CANCELLED: t("bookingsStatusCancelled"),
+  };
 
   const OrderCard = ({ order }: { order: ServiceOrder }) => {
     const isForwarded = order.notes && order.notes.includes("[FORWARDED_TO_KITCHEN]");
@@ -170,11 +179,11 @@ export default function OrdersQueuePage() {
       <div className="flex justify-between items-start">
         <div>
           <div className="text-xl font-bold">
-            Room {order.booking?.room?.room_number}
+            {t("bookingsRoomNumber", { number: order.booking?.room?.room_number })}
           </div>
           <div className="text-sm text-neutral-500 flex items-center mt-1">
             <Clock className="w-4 h-4 mr-1" />
-            {new Date(order.created_at).toLocaleTimeString([], {
+            {new Date(order.created_at).toLocaleTimeString(formattingLocale, {
               hour: "2-digit",
               minute: "2-digit",
             })}
@@ -187,7 +196,7 @@ export default function OrdersQueuePage() {
               : "bg-blue-100 text-blue-800"
           }`}
         >
-          {order.status}
+          {statusLabels[order.status] || order.status}
         </span>
       </div>
 
@@ -213,7 +222,7 @@ export default function OrdersQueuePage() {
             onClick={() => updateStatus(order.id, "PENDING", "[FORWARDED_TO_KITCHEN]")}
             className="flex-1 min-w-[150px] bg-orange-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-orange-700 transition-colors flex items-center justify-center"
           >
-            <CheckCircle2 className="w-4 h-4 mr-2" /> Xác nhận & Chuyển Bếp
+            <CheckCircle2 className="w-4 h-4 mr-2" /> {t("ordersApproveAndForward")}
           </button>
         )}
 
@@ -222,26 +231,26 @@ export default function OrdersQueuePage() {
             onClick={() => updateStatus(order.id, "IN_PROGRESS", "[REDO_REQUESTED_BY_RECEPTIONIST]")}
             className="flex-1 min-w-[150px] bg-red-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-red-700 transition-colors flex items-center justify-center"
           >
-            <CheckCircle2 className="w-4 h-4 mr-2" /> Báo Bếp làm lại
+            <CheckCircle2 className="w-4 h-4 mr-2" /> {t("ordersRequestRedo")}
           </button>
         )}
 
         {order.status === "PENDING" && isForwarded && (user?.role === "KITCHEN" || user?.role === "ADMIN") && (
           <button
             onClick={() => {
-              const time = window.prompt("Nhập thời gian dự kiến (vd: 15 phút):", "15 phút");
+              const time = window.prompt(t("ordersEstimatedTimePrompt"), t("ordersEstimatedTimeDefault"));
               if (time) {
                 updateStatus(order.id, "IN_PROGRESS", `[EST_TIME: ${time}]`);
               }
             }}
             className="flex-1 min-w-[150px] bg-primary-6000 text-white py-2 rounded-lg text-sm font-medium hover:bg-primary-700 transition-colors flex items-center justify-center"
           >
-            <ChefHat className="w-4 h-4 mr-2" /> Bếp Nhận & Báo Giờ
+            <ChefHat className="w-4 h-4 mr-2" /> {t("ordersKitchenAccept")}
           </button>
         )}
 
         {order.status === "PENDING" && !isForwarded && user?.role === "KITCHEN" && (
-           <span className="flex-1 min-w-[150px] text-sm text-neutral-500 flex items-center justify-center">Đợi Lễ tân duyệt...</span>
+           <span className="flex-1 min-w-[150px] text-sm text-neutral-500 flex items-center justify-center">{t("ordersWaitingReceptionistApproval")}</span>
         )}
 
         {order.status === "IN_PROGRESS" && (!isDelivered && !isNotReceived && !isConfirmed) && (user?.role === "KITCHEN" || user?.role === "ADMIN") && (
@@ -249,17 +258,17 @@ export default function OrdersQueuePage() {
             onClick={() => updateStatus(order.id, "IN_PROGRESS", "[DELIVERED_WAITING_CONFIRM]")}
             className="flex-1 min-w-[150px] bg-green-600 text-white py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition-colors flex items-center justify-center"
           >
-            <CheckCircle2 className="w-4 h-4 mr-2" /> Hoàn thành & Giao món
+            <CheckCircle2 className="w-4 h-4 mr-2" /> {t("ordersCompleteAndDeliver")}
           </button>
         )}
 
         {order.status === "IN_PROGRESS" && isDelivered && (user?.role === "KITCHEN" || user?.role === "ADMIN") && (
-          <span className="flex-1 min-w-[150px] text-sm text-neutral-500 flex items-center justify-center">Đã giao - Đợi Khách xác nhận...</span>
+          <span className="flex-1 min-w-[150px] text-sm text-neutral-500 flex items-center justify-center">{t("ordersDeliveredWaitingCustomer")}</span>
         )}
 
         {order.status === "COMPLETED" && isConfirmed && (
           <span className="flex-1 min-w-[150px] text-sm text-emerald-600 font-medium flex items-center justify-center">
-            <CheckCircle2 className="w-4 h-4 mr-2" /> Khách đã xác nhận
+            <CheckCircle2 className="w-4 h-4 mr-2" /> {t("ordersCustomerConfirmed")}
           </span>
         )}
         <button
@@ -276,13 +285,13 @@ export default function OrdersQueuePage() {
   return (
     <DashboardLayout>
       <div className="container py-16 mb-24 lg:mb-32">
-        <h2 className="text-3xl font-semibold sm:text-4xl mb-6">Live Order Queue</h2>
+        <h2 className="text-3xl font-semibold sm:text-4xl mb-6">{t("ordersLiveQueueTitle")}</h2>
 
         {/* Chef & F&B Segmentation Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8 bg-neutral-100 dark:bg-neutral-800/80 p-4 rounded-2xl border border-neutral-200 dark:border-neutral-700">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-neutral-600 dark:text-neutral-300 flex items-center gap-1.5">
-              <Filter className="w-4 h-4" /> Lọc nghiệp vụ (Segmentation):
+              <Filter className="w-4 h-4" /> {t("ordersOperationalFilter")}
             </span>
             <div className="flex bg-white dark:bg-neutral-900 rounded-xl p-1 shadow-sm border border-neutral-200 dark:border-neutral-700">
               <button
@@ -293,7 +302,7 @@ export default function OrdersQueuePage() {
                     : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                 }`}
               >
-                Tất cả dịch vụ
+                {t("ordersAllServices")}
               </button>
               <button
                 onClick={() => setCategoryFilter("FOOD_BEVERAGE")}
@@ -303,7 +312,7 @@ export default function OrdersQueuePage() {
                     : "text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-white"
                 }`}
               >
-                <Utensils className="w-3.5 h-3.5" /> Ẩm thực Bếp (Chef Only)
+                <Utensils className="w-3.5 h-3.5" /> {t("ordersKitchenFoodOnly")}
               </button>
             </div>
           </div>
@@ -319,12 +328,12 @@ export default function OrdersQueuePage() {
             {soundAlert ? (
               <>
                 <Bell className="w-4 h-4 animate-bounce text-emerald-600 dark:text-emerald-400" />
-                <span>Chuông báo: BẬT (Sound ON)</span>
+                <span>{t("ordersSoundOn")}</span>
               </>
             ) : (
               <>
                 <BellOff className="w-4 h-4" />
-                <span>Chuông báo: TẮT (Muted)</span>
+                <span>{t("ordersSoundOff")}</span>
               </>
             )}
           </button>
@@ -375,7 +384,7 @@ export default function OrdersQueuePage() {
         {(user?.role === "RECEPTIONIST" || user?.role === "ADMIN") && (
           <div className="bg-neutral-50 dark:bg-neutral-800/50 p-6 rounded-3xl min-h-[500px]">
             <h3 className="text-xl font-semibold mb-6 flex items-center justify-between">
-              <span>Đã Hoàn Thành</span>
+              <span>{t("ordersCompleted")}</span>
               <span className="bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full text-sm">
                 {completedOrders.length}
               </span>
@@ -386,7 +395,7 @@ export default function OrdersQueuePage() {
               ))}
               {completedOrders.length === 0 && (
                 <div className="text-center text-neutral-500 py-10">
-                  Chưa có đơn nào hoàn thành
+                  {t("ordersNoCompleted")}
                 </div>
               )}
             </div>

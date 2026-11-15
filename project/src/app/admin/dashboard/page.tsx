@@ -29,7 +29,7 @@ import {
   Line,
 } from "recharts";
 import { useTranslation } from "react-i18next";
-import i18n from "@/lib/i18n";
+import { DEFAULT_LANGUAGE, isAppLanguage, toFormattingLocale } from "@/lib/locale";
 
 const RechartsResponsiveContainer = ResponsiveContainer as any;
 const RechartsPieChart = PieChart as any;
@@ -53,7 +53,10 @@ const COLORS = [
   "#5AC0C9", // Age 56+ Teal
 ];
 export default function AdminDashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const language = isAppLanguage(i18n.resolvedLanguage) ? i18n.resolvedLanguage : DEFAULT_LANGUAGE;
+  const formattingLocale = toFormattingLocale(language);
+  const getRoleLabel = (role: string) => t(`userManagementRole${role.charAt(0)}${role.slice(1).toLowerCase()}`, { defaultValue: role });
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -108,7 +111,7 @@ export default function AdminDashboardPage() {
           <span>
             {t("adminDashboardMonth")}:{" "}
             {new Date().toLocaleDateString(
-              i18n.language === "vn" ? "vi-VN" : "en-US",
+              formattingLocale,
               { month: "long", year: "numeric" },
             )}
           </span>
@@ -177,7 +180,7 @@ export default function AdminDashboardPage() {
                 {t("adminDashboardTotalRevenue")}
               </span>
               <h3 className="text-3xl font-extrabold text-neutral-900 dark:text-white">
-                {new Intl.NumberFormat("vi-VN", {
+                {new Intl.NumberFormat(formattingLocale, {
                   style: "currency",
                   currency: "VND",
                 }).format(stats.totalRevenue)}
@@ -219,13 +222,13 @@ export default function AdminDashboardPage() {
           <div className="flex justify-between items-start">
             <div className="space-y-2">
               <span className="text-sm font-semibold text-amber-500 dark:text-amber-400">
-                🍿 Quản Lý Đơn Đồ Ăn & Dịch Vụ
+                {t("adminDashboardServiceOrders")}
               </span>
               <h3 className="text-2xl font-extrabold text-neutral-900 dark:text-white">
-                Live Queue ➔
+                {t("adminDashboardLiveQueue")}
               </h3>
               <div className="flex items-center text-xs font-bold text-amber-600 dark:text-amber-300 space-x-1">
-                <span>Xem trạng thái đơn real-time & quản lý</span>
+                <span>{t("adminDashboardServiceOrdersDesc")}</span>
               </div>
             </div>
             <div className="bg-amber-500/10 text-amber-600 dark:text-amber-400 p-4 rounded-2xl">
@@ -259,7 +262,7 @@ export default function AdminDashboardPage() {
                         }}
                       ></span>
                       <span className="font-semibold text-neutral-600 dark:text-neutral-300">
-                        {entry.name}
+                        {getRoleLabel(entry.name)}
                       </span>
                     </div>
                     <span className="font-extrabold text-neutral-900 dark:text-white">
@@ -354,13 +357,13 @@ export default function AdminDashboardPage() {
                   />
                   <RechartsTooltip
                     formatter={(value: any) =>
-                      `${Number(value).toLocaleString("vi-VN")} đ`
+                      new Intl.NumberFormat(formattingLocale, { style: "currency", currency: "VND" }).format(Number(value))
                     }
                   />
                   <RechartsArea
                     type="monotone"
                     dataKey="revenue"
-                    name="Doanh thu"
+                    name={t("adminDashboardRevenueSeries")}
                     stroke="#E48F9F"
                     strokeWidth={3}
                     fillOpacity={1}
@@ -379,10 +382,10 @@ export default function AdminDashboardPage() {
           <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-6 rounded-3xl shadow-sm">
             <div className="border-b border-neutral-100 dark:border-neutral-700 pb-3 mb-6">
               <h3 className="text-xl font-bold text-neutral-800 dark:text-white">
-                Preferred Products
+                {t("adminDashboardPreferredProducts")}
               </h3>
               <p className="text-xs text-neutral-400 mt-1">
-                Distribution of customers preferred categories
+                {t("adminDashboardPreferredProductsDesc")}
               </p>
             </div>
             <div className="space-y-4">
@@ -413,10 +416,10 @@ export default function AdminDashboardPage() {
             <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-6 rounded-3xl shadow-sm">
               <div className="border-b border-neutral-100 dark:border-neutral-700 pb-3 mb-6">
                 <h3 className="text-xl font-bold text-neutral-800 dark:text-white">
-                  Purchase Frequency
+                  {t("adminDashboardPurchaseFrequency")}
                 </h3>
                 <p className="text-xs text-neutral-400 mt-1">
-                  Distribution based on purchase frequency
+                  {t("adminDashboardPurchaseFrequencyDesc")}
                 </p>
               </div>
               <div className="h-60">
@@ -445,7 +448,7 @@ export default function AdminDashboardPage() {
                     <RechartsTooltip />
                     <RechartsBar
                       dataKey="count"
-                      name="Đăng ký mới"
+                      name={t("adminDashboardNewSignups")}
                       fill="#E48F9F"
                       radius={[8, 8, 0, 0]}
                       maxBarSize={30}
@@ -459,10 +462,10 @@ export default function AdminDashboardPage() {
             <div className="bg-white dark:bg-neutral-800 border border-neutral-200 dark:border-neutral-700 p-6 rounded-3xl shadow-sm">
               <div className="border-b border-neutral-100 dark:border-neutral-700 pb-3 mb-6">
                 <h3 className="text-xl font-bold text-neutral-800 dark:text-white">
-                  Customer Satisfaction
+                  {t("adminDashboardCustomerSatisfaction")}
                 </h3>
                 <p className="text-xs text-neutral-400 mt-1">
-                  Average customer satisfaction based on surveys
+                  {t("adminDashboardCustomerSatisfactionDesc")}
                 </p>
               </div>
               <div className="space-y-4">

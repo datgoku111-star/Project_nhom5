@@ -1,3 +1,5 @@
+"use client";
+
 import React, { FC } from "react";
 import { DEMO_CAR_LISTINGS } from "@/data/listings";
 import { CarDataType } from "@/data/types";
@@ -8,6 +10,7 @@ import SaleOffBadge from "@/components/SaleOffBadge";
 import Badge from "@/shared/Badge";
 import Image from "next/image";
 import Link from "next/link";
+import { useTranslation } from "react-i18next";
 
 export interface CarCardProps {
   className?: string;
@@ -23,6 +26,7 @@ const CarCard: FC<CarCardProps> = ({
   data = DEMO_DATA,
 }) => {
   const { formatPrice } = useCurrency();
+  const { t } = useTranslation();
   const {
     featuredImage,
     title,
@@ -50,12 +54,12 @@ const CarCard: FC<CarCardProps> = ({
             <Image
               fill
               src={featuredImage}
-              alt="car"
+              alt={t("listingCarImageAlt")}
               sizes="(max-width: 640px) 100vw, 350px"
             />
           ) : (
             <div className="w-full h-full bg-neutral-200 dark:bg-neutral-800 flex items-center justify-center">
-              No Image
+              {t("listingNoImage")}
             </div>
           )}
         </div>
@@ -88,7 +92,7 @@ const CarCard: FC<CarCardProps> = ({
                 <span>-</span>
               </>
             )}
-            <span className="">{seats} seats</span>
+            <span className="">{t("listingSeats", { count: seats })}</span>
             <span>-</span>
             <span className="">{gearshift} </span>
           </div>
@@ -100,7 +104,7 @@ const CarCard: FC<CarCardProps> = ({
             {` `}
             {size === "default" && (
               <span className="text-sm text-neutral-500 dark:text-neutral-400 font-normal">
-                /day
+                {t("listingPerDay")}
               </span>
             )}
           </span>

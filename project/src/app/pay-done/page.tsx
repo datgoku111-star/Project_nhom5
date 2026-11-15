@@ -10,11 +10,15 @@ import { useCurrency } from "@/hooks/useCurrency";
 import { useAuth } from "@/lib/auth-context";
 import { Route } from "@/routers/types";
 import carsListingData from "@/data/jsons/__carsListing.json";
+import { toFormattingLocale } from "@/lib/locale";
 
 export interface PayPageProps {}
 
 const PayPageContent: FC = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const formattingLocale = toFormattingLocale(
+    i18n.resolvedLanguage === "en" ? "en" : "vn",
+  );
   const searchParams = useSearchParams();
   const router = useRouter();
   const bookingId = searchParams.get("bookingId");
@@ -45,7 +49,7 @@ const PayPageContent: FC = () => {
   const handleIncidentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (description.length < 10) {
-      setIncidentErrorMsg("Mô tả sự cố phải có ít nhất 10 ký tự.");
+      setIncidentErrorMsg(t("paydoneIncidentMinLength"));
       return;
     }
     setSubmittingIncident(true);
@@ -70,14 +74,14 @@ const PayPageContent: FC = () => {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Gửi báo cáo sự cố thất bại.");
+        throw new Error(errData.error || t("paydoneIncidentSubmitError"));
       }
 
-      setIncidentSuccessMsg("Gửi báo cáo sự cố thành công! Ban quản lý khách sạn đã nhận được thông tin và đang xử lý.");
+      setIncidentSuccessMsg(t("paydoneIncidentSubmitSuccess"));
       setDescription("");
     } catch (err: any) {
       console.error(err);
-      setIncidentErrorMsg(err.message || "Đã xảy ra lỗi kết nối khi gửi báo cáo.");
+      setIncidentErrorMsg(err.message || t("paydoneIncidentConnectionError"));
     } finally {
       setSubmittingIncident(false);
     }
@@ -95,7 +99,7 @@ const PayPageContent: FC = () => {
         // 1. Fetch booking details
         const bookingRes = await fetch(`/api/bookings/${bookingId}`);
         if (!bookingRes.ok) {
-          throw new Error("Không thể tải thông tin đặt phòng.");
+          throw new Error(t("paydoneLoadBookingError"));
         }
         const bData = await bookingRes.json();
         setBookingData(bData);
@@ -113,20 +117,20 @@ const PayPageContent: FC = () => {
         }
       } catch (err: any) {
         console.error(err);
-        setError(err.message || "Đã xảy ra lỗi khi tải dữ liệu giao dịch.");
+        setError(err.message || t("paydoneLoadTransactionError"));
       } finally {
         setLoading(false);
       }
     };
 
     fetchData();
-  }, [bookingId, serviceOrderId, type]);
+  }, [bookingId, serviceOrderId, t, type]);
 
   const formatDateRange = (startStr: string, endStr: string) => {
     if (!startStr || !endStr) return "";
     const options: Intl.DateTimeFormatOptions = { day: "numeric", month: "short", year: "numeric" };
-    const start = new Date(startStr).toLocaleDateString("vi-VN", options);
-    const end = new Date(endStr).toLocaleDateString("vi-VN", options);
+    const start = new Date(startStr).toLocaleDateString(formattingLocale, options);
+    const end = new Date(endStr).toLocaleDateString(formattingLocale, options);
     return `${start} - ${end}`;
   };
 
@@ -134,7 +138,7 @@ const PayPageContent: FC = () => {
     return (
       <div className="container min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-6000 border-t-transparent"></div>
-        <p className="text-neutral-500 dark:text-neutral-400">Đang tải thông tin giao dịch...</p>
+        <p className="text-neutral-500 dark:text-neutral-400">{t("paydoneLoadingTransaction")}</p>
       </div>
     );
   }
@@ -144,7 +148,7 @@ const PayPageContent: FC = () => {
       <div className="container min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <div className="text-red-500 text-5xl">⚠️</div>
         <p className="text-neutral-800 dark:text-neutral-200 font-semibold">{error}</p>
-        <ButtonPrimary href="/">Quay lại Trang chủ</ButtonPrimary>
+        <ButtonPrimary href="/">{t("paydoneBackHome")}</ButtonPrimary>
       </div>
     );
   }
@@ -179,35 +183,35 @@ const PayPageContent: FC = () => {
         const tourTitleLower = tourTitle.toLowerCase();
         
         displayTitle = tourTitle.charAt(0).toUpperCase() + tourTitle.slice(1);
-        displayCategory = "Trải nghiệm";
+        displayCategory = t("paydoneExperienceCategory");
         
         if (tourTitleLower.includes("climbing") || tourTitleLower.includes("leo núi")) {
-          displayTitle = "Leo núi (Climbing Experience)";
+          displayTitle = t("paydoneClimbingExperience");
           displayAddress = "Fansipan, Sapa";
           displayImg = "https://images.pexels.com/photos/5205846/pexels-photo-5205846.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260";
         } else if (tourTitleLower.includes("rowing") || tourTitleLower.includes("chèo thuyền")) {
-          displayTitle = "Chèo thuyền (Rowing Experience)";
+          displayTitle = t("paydoneRowingExperience");
           displayAddress = "Tràng An, Ninh Bình";
           displayImg = "https://images.pexels.com/photos/2583852/pexels-photo-2583852.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260";
         } else if (tourTitleLower.includes("swimming") || tourTitleLower.includes("tắm biển")) {
-          displayTitle = "Tắm biển (Swimming Experience)";
-          displayAddress = "Bể bơi vô cực, Fis Hotel";
+          displayTitle = t("paydoneSwimmingExperience");
+          displayAddress = t("paydoneInfinityPoolAddress");
           displayImg = "https://images.pexels.com/photos/189349/pexels-photo-189349.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260";
         } else if (tourTitleLower.includes("skiing") || tourTitleLower.includes("trượt tuyết")) {
-          displayTitle = "Trượt tuyết (Skiing Experience)";
-          displayAddress = "Alpine Zone, Núi tuyết";
+          displayTitle = t("paydoneSkiingExperience");
+          displayAddress = t("paydoneAlpineAddress");
           displayImg = "https://images.pexels.com/photos/848618/pexels-photo-848618.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260";
         } else {
           displayAddress = "Fis Hotel Resort";
           displayImg = "https://images.pexels.com/photos/5205846/pexels-photo-5205846.jpeg?auto=compress&cs=tinysrgb&dpr=2&h=750&w=1260";
         }
         
-        displaySubInfo = "Trải nghiệm du lịch trọn gói";
+        displaySubInfo = t("paydoneFullExperience");
       } else if (isCar) {
         const carTitle = meta.title || "Rental Car";
         displayTitle = carTitle;
-        displayCategory = "Thuê xe";
-        displayAddress = "Nhận xe tại quầy lễ tân";
+        displayCategory = t("paydoneCarRentalCategory");
+        displayAddress = t("paydoneCarPickup");
         
         // Find car image
         const foundCar = carsListingData.find((c: any) => c.title.toLowerCase() === carTitle.toLowerCase());
@@ -217,16 +221,27 @@ const PayPageContent: FC = () => {
           displayImg = "https://images.unsplash.com/photo-1614162692292-7ac56d7f7f1e?auto=compress&cs=tinysrgb&w=800";
         }
         
-        displaySubInfo = "Dịch vụ thuê xe tự lái";
+        displaySubInfo = t("paydoneCarService");
       } else {
         // Normal room booking
         displayTitle = title !== "The Lounge & Bar" ? title : (bookingData.room?.room_type?.name || "Hotel room");
         displayCategory = category;
         displayAddress = address;
-        displaySubInfo = bookingData.room ? `Phòng ${bookingData.room.room_number} - Tầng ${bookingData.room.floor} (${bookingData.room.room_type?.name || "Standard"})` : "2 beds · 2 baths";
+        displaySubInfo = bookingData.room
+          ? t("paydoneRoomSummary", {
+              room: bookingData.room.room_number,
+              floor: bookingData.room.floor,
+              type: bookingData.room.room_type?.name || "Standard",
+            })
+          : t("paydoneDefaultRoomSummary");
       }
     } else if (isService) {
-      displaySubInfo = bookingData?.room?.room_number ? `Giao tới Phòng ${bookingData.room.room_number} (Tầng ${bookingData.room.floor})` : "Dịch vụ phòng";
+      displaySubInfo = bookingData?.room?.room_number
+        ? t("paydoneServiceDelivery", {
+            room: bookingData.room.room_number,
+            floor: bookingData.room.floor,
+          })
+        : t("paydoneRoomService");
     }
 
     return (
@@ -239,7 +254,7 @@ const PayPageContent: FC = () => {
 
         {/* ------------------------ */}
         <div className="space-y-6">
-          <h3 className="text-2xl font-semibold">{isService ? t("paydoneYourOrder") || "Your order" : t("paydoneYourBooking")}</h3>
+          <h3 className="text-2xl font-semibold">{isService ? t("paydoneYourOrder") : t("paydoneYourBooking")}</h3>
           <div className="flex flex-col sm:flex-row sm:items-center">
             <div className="flex-shrink-0 w-full sm:w-40">
               <div className=" aspect-w-4 aspect-h-3 sm:aspect-h-4 rounded-2xl overflow-hidden">
@@ -254,7 +269,12 @@ const PayPageContent: FC = () => {
             <div className="pt-5  sm:pb-5 sm:px-5 space-y-3">
               <div>
                 <span className="text-sm text-neutral-500 dark:text-neutral-400 line-clamp-1">
-                  {isService ? "Dịch vụ gọi món & đồ uống" : `${displayCategory} in ${displayAddress}`}
+                  {isService
+                    ? t("paydoneFoodService")
+                    : t("paydoneCategoryAtAddress", {
+                        category: displayCategory,
+                        address: displayAddress,
+                      })}
                 </span>
                 <span className="text-base sm:text-lg font-medium mt-1 block">
                   {displayTitle}
@@ -290,7 +310,7 @@ const PayPageContent: FC = () => {
                 </span>
                 <span className="mt-1.5 text-lg font-semibold">
                   {isService 
-                    ? (orderData ? new Date(orderData.created_at).toLocaleDateString("vi-VN", { day: "numeric", month: "short", year: "numeric" }) : "Hôm nay")
+                    ? (orderData ? new Date(orderData.created_at).toLocaleDateString(formattingLocale, { day: "numeric", month: "short", year: "numeric" }) : t("paydoneToday"))
                     : (bookingData ? formatDateRange(bookingData.check_in_date, bookingData.check_out_date) : "Aug 12 - 16, 2021")
                   }
                 </span>
@@ -313,11 +333,11 @@ const PayPageContent: FC = () => {
               </svg>
 
               <div className="flex flex-col">
-                <span className="text-sm text-neutral-400">{isService ? "Order Status" : t("checkoutGuestsLabel")}</span>
+                <span className="text-sm text-neutral-400">{isService ? t("paydoneOrderStatus") : t("checkoutGuestsLabel")}</span>
                 <span className="mt-1.5 text-lg font-semibold">
                   {isService 
-                    ? (orderData?.status === "PENDING" ? "Đang chờ" : orderData?.status === "IN_PROGRESS" ? "Đang thực hiện" : orderData?.status === "COMPLETED" ? "Đã giao" : "Đã hủy")
-                    : (bookingData ? `${bookingData.num_guests} khách` : "3 Guests")
+                    ? t(`paydoneStatus.${orderData?.status || "CANCELLED"}`)
+                    : (bookingData ? t("paydoneGuestCount", { count: bookingData.num_guests }) : t("paydoneGuestCount", { count: 3 }))
                   }
                 </span>
               </div>
@@ -330,7 +350,7 @@ const PayPageContent: FC = () => {
           <h3 className="text-2xl font-semibold">{t("paydoneBookingDetail")}</h3>
           <div className="flex flex-col space-y-4">
             <div className="flex text-neutral-6000 dark:text-neutral-300">
-              <span className="flex-1">{isService ? "Mã đơn hàng" : t("paydoneBookingCode")}</span>
+              <span className="flex-1">{isService ? t("paydoneOrderCode") : t("paydoneBookingCode")}</span>
               <span className="flex-1 font-mono font-medium text-neutral-900 dark:text-neutral-100 select-all">
                 #{isService 
                   ? (orderData?.id?.slice(0, 8).toUpperCase() || "SERVICE_ORDER") 
@@ -342,7 +362,7 @@ const PayPageContent: FC = () => {
             {/* If service, list food items */}
             {isService && orderData?.items && (
               <div className="flex flex-col space-y-2 py-2 border-y border-neutral-100 dark:border-neutral-800">
-                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Danh sách món ăn:</span>
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider">{t("paydoneFoodList")}</span>
                 {orderData.items.map((item: any) => (
                   <div key={item.id} className="flex justify-between text-sm text-neutral-600 dark:text-neutral-300">
                     <span>{item.service?.name} x {item.quantity}</span>
@@ -356,8 +376,8 @@ const PayPageContent: FC = () => {
               <span className="flex-1">{t("checkoutDateLabel")}</span>
               <span className="flex-1 font-medium text-neutral-900 dark:text-neutral-100">
                 {isService
-                  ? (orderData ? new Date(orderData.created_at).toLocaleDateString("vi-VN", { day: "numeric", month: "long", year: "numeric" }) : "")
-                  : (bookingData ? new Date(bookingData.created_at).toLocaleDateString("vi-VN", { day: "numeric", month: "long", year: "numeric" }) : "12 Aug, 2021")
+                  ? (orderData ? new Date(orderData.created_at).toLocaleDateString(formattingLocale, { day: "numeric", month: "long", year: "numeric" }) : "")
+                  : (bookingData ? new Date(bookingData.created_at).toLocaleDateString(formattingLocale, { day: "numeric", month: "long", year: "numeric" }) : "12 Aug, 2021")
                 }
               </span>
             </div>
@@ -373,7 +393,7 @@ const PayPageContent: FC = () => {
             <div className="flex justify-between text-neutral-6000 dark:text-neutral-300">
               <span className="flex-1">{t("paydonePaymentMethod")}</span>
               <span className="flex-1 font-medium text-neutral-900 dark:text-neutral-100">
-                VietQR (PayOS) / Chuyển khoản
+                {t("paydonePaymentValue")}
               </span>
             </div>
           </div>
@@ -384,10 +404,10 @@ const PayPageContent: FC = () => {
             <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
               <div>
                 <h4 className="text-xl font-semibold text-neutral-900 dark:text-neutral-100">
-                  Báo cáo sự cố hoặc Yêu cầu đặc biệt
+                  {t("paydoneIncidentTitle")}
                 </h4>
                 <p className="text-sm text-neutral-500 dark:text-neutral-400 mt-1">
-                  Nếu bạn phát hiện sự cố phòng hoặc có yêu cầu dọn dẹp, bảo trì đặc biệt trước khi nhận phòng, vui lòng khai báo tại đây.
+                  {t("paydoneIncidentDesc")}
                 </p>
               </div>
               <button
@@ -395,7 +415,7 @@ const PayPageContent: FC = () => {
                 onClick={() => setShowIncidentForm(!showIncidentForm)}
                 className="flex-shrink-0 px-5 py-2.5 bg-neutral-100 hover:bg-neutral-200 dark:bg-neutral-800 dark:hover:bg-neutral-700 text-neutral-800 dark:text-neutral-200 rounded-full text-sm font-semibold transition"
               >
-                {showIncidentForm ? "Đóng biểu mẫu" : "Khai báo ngay"}
+                {showIncidentForm ? t("paydoneIncidentClose") : t("paydoneIncidentOpen")}
               </button>
             </div>
 
@@ -415,53 +435,53 @@ const PayPageContent: FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider block">
-                      Phân loại yêu cầu / sự cố:
+                      {t("paydoneIncidentType")}
                     </label>
                     <select
                       value={incidentType}
                       onChange={(e) => setIncidentType(e.target.value)}
                       className="w-full p-3 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-primary-500 text-neutral-900 dark:text-neutral-200"
                     >
-                      <option value="MAINTENANCE">Bảo trì / Sửa chữa thiết bị (MAINTENANCE)</option>
-                      <option value="COMPLAINT">Yêu cầu / Khiếu nại dịch vụ phòng (COMPLAINT)</option>
-                      <option value="DAMAGE">Báo hỏng hóc đồ dùng (DAMAGE)</option>
-                      <option value="MISSING_HOTEL_ITEM">Thiếu vật phẩm trong phòng (MISSING_HOTEL_ITEM)</option>
-                      <option value="GUEST_LOST_ITEM">Báo thất lạc hành lý cá nhân (GUEST_LOST_ITEM)</option>
-                      <option value="OTHER">Yêu cầu đặc biệt khác (OTHER)</option>
+                      <option value="MAINTENANCE">{t("paydoneIncidentTypes.MAINTENANCE")}</option>
+                      <option value="COMPLAINT">{t("paydoneIncidentTypes.COMPLAINT")}</option>
+                      <option value="DAMAGE">{t("paydoneIncidentTypes.DAMAGE")}</option>
+                      <option value="MISSING_HOTEL_ITEM">{t("paydoneIncidentTypes.MISSING_HOTEL_ITEM")}</option>
+                      <option value="GUEST_LOST_ITEM">{t("paydoneIncidentTypes.GUEST_LOST_ITEM")}</option>
+                      <option value="OTHER">{t("paydoneIncidentTypes.OTHER")}</option>
                     </select>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider block">
-                      Mức độ khẩn cấp:
+                      {t("paydoneIncidentSeverity")}
                     </label>
                     <select
                       value={incidentSeverity}
                       onChange={(e) => setIncidentSeverity(e.target.value)}
                       className="w-full p-3 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-primary-500 text-neutral-900 dark:text-neutral-200"
                     >
-                      <option value="LOW">Thấp (LOW)</option>
-                      <option value="MEDIUM">Trung bình (MEDIUM)</option>
-                      <option value="HIGH">Cao (HIGH)</option>
-                      <option value="CRITICAL">Khẩn cấp (CRITICAL)</option>
+                      <option value="LOW">{t("paydoneIncidentSeverities.LOW")}</option>
+                      <option value="MEDIUM">{t("paydoneIncidentSeverities.MEDIUM")}</option>
+                      <option value="HIGH">{t("paydoneIncidentSeverities.HIGH")}</option>
+                      <option value="CRITICAL">{t("paydoneIncidentSeverities.CRITICAL")}</option>
                     </select>
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold text-neutral-600 dark:text-neutral-400 uppercase tracking-wider block">
-                    Nội dung mô tả chi tiết:
+                    {t("paydoneIncidentDescription")}
                   </label>
                   <textarea
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     rows={4}
-                    placeholder="Mô tả cụ thể sự cố hoặc yêu cầu (ví dụ: chuẩn bị thêm chăn ấm, chuẩn bị giường cũi em bé, vòi nước rò rỉ...)"
+                    placeholder={t("paydoneIncidentPlaceholder")}
                     className="w-full p-4 rounded-2xl border border-neutral-200 dark:border-neutral-700 bg-white dark:bg-neutral-900 text-sm focus:ring-2 focus:ring-primary-500 text-neutral-900 dark:text-neutral-200"
                     required
                   />
                   <p className="text-[11px] text-neutral-500 dark:text-neutral-400">
-                    * Vui lòng nhập tối thiểu 10 ký tự.
+                    {t("paydoneIncidentMinHint")}
                   </p>
                 </div>
 
@@ -470,7 +490,7 @@ const PayPageContent: FC = () => {
                   disabled={submittingIncident}
                   className="w-full md:w-auto px-6 py-3 bg-primary-6000 hover:bg-primary-700 text-white rounded-full text-sm font-semibold shadow-sm transition disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submittingIncident ? "Đang gửi báo cáo..." : "Gửi yêu cầu sự cố"}
+                  {submittingIncident ? t("paydoneIncidentSubmitting") : t("paydoneIncidentSubmit")}
                 </button>
               </form>
             )}
@@ -479,13 +499,13 @@ const PayPageContent: FC = () => {
 
         <div className="flex flex-col sm:flex-row gap-4">
           <ButtonPrimary href={`/bookings/${bookingId}` as Route}>
-            {isService ? "Xem chi tiết hóa đơn dịch vụ" : "Xem chi tiết hóa đơn đặt phòng"}
+            {isService ? t("paydoneViewServiceInvoice") : t("paydoneViewBookingInvoice")}
           </ButtonPrimary>
           <button
             onClick={() => router.push("/")}
             className="px-6 py-3 border border-neutral-300 dark:border-neutral-700 hover:bg-neutral-100 dark:hover:bg-neutral-800 text-neutral-800 dark:text-neutral-200 rounded-full font-semibold transition text-sm"
           >
-            Quay lại Trang chủ
+            {t("paydoneBackHome")}
           </button>
         </div>
       </div>
@@ -502,11 +522,13 @@ const PayPageContent: FC = () => {
 };
 
 const PayPage: FC<PayPageProps> = () => {
+  const { t } = useTranslation();
+
   return (
     <Suspense fallback={
       <div className="container min-h-[60vh] flex flex-col items-center justify-center space-y-4">
         <div className="animate-spin rounded-full h-10 w-10 border-4 border-primary-6000 border-t-transparent"></div>
-        <p className="text-neutral-500 dark:text-neutral-400">Đang tải thông tin giao dịch...</p>
+        <p className="text-neutral-500 dark:text-neutral-400">{t("paydoneLoadingTransaction")}</p>
       </div>
     }>
       <PayPageContent />
