@@ -6,6 +6,8 @@ import { verifyToken } from "@/lib/auth";
 const publicPaths = [
   "/",
   "/login",
+  "/forgot-password",
+  "/reset-password",
   "/signup",
   "/hsrm-login",
   "/hsrm-register",

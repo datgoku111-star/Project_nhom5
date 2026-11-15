@@ -193,7 +193,7 @@ const LoginPageContent = () => {
             <label className="block">
               <span suppressHydrationWarning className="flex justify-between items-center text-neutral-800 dark:text-neutral-200">
                 {t("loginPassword")}
-                <Link href="/login" className="text-sm underline font-medium">
+                <Link href="/forgot-password" className="text-sm underline font-medium">
                   {t("loginForgotPassword")}
                 </Link>
               </span>
