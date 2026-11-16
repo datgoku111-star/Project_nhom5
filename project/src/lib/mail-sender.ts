@@ -1,23 +1,43 @@
 import nodemailer from "nodemailer";
 
+// Escape dữ liệu động trước khi chèn vào HTML email
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+
+    return entities[char];
+  });
+}
+
 // Retrieve SMTP credentials from environment variables
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
-const SMTP_FROM = process.env.SMTP_FROM || `"HSRM Resort Booking" <noreply@hotel.com>`;
+const SMTP_FROM =
+  process.env.SMTP_FROM || `"HSRM Resort Booking" <noreply@hotel.com>`;
 
 // Create transporter only if user & pass are provided
 const createTransporter = () => {
   if (!SMTP_USER || !SMTP_PASS) {
-    console.warn("WARNING: SMTP credentials (SMTP_USER/SMTP_PASS) are missing in environment variables. Mailer is disabled.");
+    console.warn(
+      "WARNING: SMTP credentials (SMTP_USER/SMTP_PASS) are missing in environment variables. Mailer is disabled.",
+    );
     return null;
   }
+
   const cleanPass = SMTP_PASS.replace(/\s+/g, "");
+
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
-    secure: SMTP_PORT === 465, // true for 465, false for others
+    secure: SMTP_PORT === 465,
     auth: {
       user: SMTP_USER,
       pass: cleanPass,
@@ -33,10 +53,18 @@ export interface SendMailParams {
 }
 
 /** Sends an email using SMTP transport */
-export async function sendEmail({ to, subject, html, replyTo }: SendMailParams): Promise<boolean> {
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  replyTo,
+}: SendMailParams): Promise<boolean> {
   const transporter = createTransporter();
+
   if (!transporter) {
-    console.warn("Skipping sending email because mail transporter is not configured.");
+    console.warn(
+      "Skipping sending email because mail transporter is not configured.",
+    );
     return false;
   }
 
@@ -48,7 +76,11 @@ export async function sendEmail({ to, subject, html, replyTo }: SendMailParams):
       html,
       replyTo: replyTo || undefined,
     });
-    console.log(`Email sent successfully to ${to}. Message ID: ${info.messageId}`);
+
+    console.log(
+      `Email sent successfully to ${to}. Message ID: ${info.messageId}`,
+    );
+
     return true;
   } catch (error) {
     console.error(`Failed to send email to ${to}:`, error);
@@ -60,6 +92,11 @@ export async function sendEmail({ to, subject, html, replyTo }: SendMailParams):
 export function formatVietnameseDate(dateStr: string): string {
   try {
     const date = new Date(dateStr);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateStr;
+    }
+
     return date.toLocaleDateString("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
       weekday: "long",
@@ -67,7 +104,7 @@ export function formatVietnameseDate(dateStr: string): string {
       month: "long",
       day: "numeric",
     });
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 }
@@ -81,6 +118,12 @@ export function buildExperienceEmailTemplate(params: {
 }): string {
   const formattedCheckIn = formatVietnameseDate(params.checkInDate);
   const formattedCheckOut = formatVietnameseDate(params.checkOutDate);
+
+  // Escape all dynamic values before inserting into HTML
+  const safeCustomerName = escapeHtml(params.customerName);
+  const safeExperienceTitle = escapeHtml(params.experienceTitle);
+  const safeCheckIn = escapeHtml(formattedCheckIn);
+  const safeCheckOut = escapeHtml(formattedCheckOut);
 
   return `
     <!DOCTYPE html>
@@ -162,8 +205,8 @@ export function buildExperienceEmailTemplate(params: {
           <h1>Xác Nhận Đăng Ký Trải Nghiệm</h1>
         </div>
         <div class="content">
-          <p>Kính chào Quý khách <span class="highlight">${params.customerName}</span>,</p>
-          <p>Cảm ơn Quý khách đã đặt dịch vụ trải nghiệm <span class="highlight">${params.experienceTitle}</span> tại hệ thống Resort của chúng tôi.</p>
+          <p>Kính chào Quý khách <span class="highlight">${safeCustomerName}</span>,</p>
+          <p>Cảm ơn Quý khách đã đặt dịch vụ trải nghiệm <span class="highlight">${safeExperienceTitle}</span> tại hệ thống Resort của chúng tôi.</p>
           <p>Chúng tôi xin gửi đến Quý khách thông tin lịch trình và thời gian chi tiết của dịch vụ như sau:</p>
 
           <table class="schedule-table">
@@ -178,22 +221,22 @@ export function buildExperienceEmailTemplate(params: {
               <tr>
                 <td style="font-weight: 600;">🏨 Check-in Khách sạn</td>
                 <td><strong>14:00</strong></td>
-                <td>Ngày nhận phòng: ${formattedCheckIn}</td>
+                <td>Ngày nhận phòng: ${safeCheckIn}</td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">🚌 Khởi hành Tour</td>
                 <td><strong>07:30</strong></td>
-                <td>Ngày tham gia: ${formattedCheckIn} (Xe đón tại sảnh Resort)</td>
+                <td>Ngày tham gia: ${safeCheckIn} (Xe đón tại sảnh Resort)</td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">🎯 Tham gia Hoạt động</td>
                 <td><strong>08:30 - 11:30</strong></td>
-                <td>Hoạt động trải nghiệm: ${params.experienceTitle}</td>
+                <td>Hoạt động trải nghiệm: ${safeExperienceTitle}</td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">🔑 Check-out Khách sạn</td>
                 <td><strong>12:00</strong></td>
-                <td>Ngày trả phòng: ${formattedCheckOut}</td>
+                <td>Ngày trả phòng: ${safeCheckOut}</td>
               </tr>
             </tbody>
           </table>
@@ -231,8 +274,20 @@ export function buildContactNotificationEmail(params: {
     year: "numeric",
   });
 
-  const subjectText = params.subject?.trim() || "Yêu cầu liên hệ trực tiếp từ website";
+  const subjectText =
+    params.subject?.trim() || "Yêu cầu liên hệ trực tiếp từ website";
   const phoneText = params.phone?.trim() || "Chưa cung cấp";
+
+  // Escape all dynamic values before inserting into HTML
+  const safeName = escapeHtml(params.name);
+  const safeEmail = escapeHtml(params.email);
+  const safePhone = escapeHtml(params.phone?.trim() || "");
+  const safeSubject = escapeHtml(subjectText);
+  const safeMessage = escapeHtml(params.message);
+  const safePhoneText = escapeHtml(phoneText);
+
+  // Encode the subject for the mailto URL, then escape it for HTML
+  const safeReplySubject = escapeHtml(encodeURIComponent(subjectText));
 
   return `
     <!DOCTYPE html>
@@ -363,7 +418,7 @@ export function buildContactNotificationEmail(params: {
           <p>Hệ thống tiếp nhận thông tin liên hệ trực tiếp từ website</p>
           <span class="badge">🔔 Tin nhắn mới</span>
         </div>
-        
+
         <div class="content">
           <p style="margin: 0 0 16px; font-size: 15px; color: #334155;">
             Quản trị viên thân mến, bạn vừa nhận được một lời nhắn liên hệ mới từ khách hàng với thông tin chi tiết như sau:
@@ -372,25 +427,29 @@ export function buildContactNotificationEmail(params: {
           <table class="info-table">
             <tr>
               <td class="info-label">👤 Họ và tên:</td>
-              <td class="info-value"><strong>${params.name}</strong></td>
+              <td class="info-value"><strong>${safeName}</strong></td>
             </tr>
             <tr>
               <td class="info-label">✉️ Email khách:</td>
               <td class="info-value">
-                <a href="mailto:${params.email}" style="color: #0284c7; text-decoration: none; font-weight: 600;">
-                  ${params.email}
+                <a href="mailto:${safeEmail}" style="color: #0284c7; text-decoration: none; font-weight: 600;">
+                  ${safeEmail}
                 </a>
               </td>
             </tr>
             <tr>
               <td class="info-label">📞 Số điện thoại:</td>
               <td class="info-value">
-                ${params.phone ? `<a href="tel:${params.phone}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${params.phone}</a>` : phoneText}
+                ${
+                  params.phone
+                    ? `<a href="tel:${safePhone}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${safePhone}</a>`
+                    : safePhoneText
+                }
               </td>
             </tr>
             <tr>
               <td class="info-label">📌 Chủ đề:</td>
-              <td class="info-value">${subjectText}</td>
+              <td class="info-value">${safeSubject}</td>
             </tr>
             <tr>
               <td class="info-label">⏰ Thời gian gửi:</td>
@@ -400,11 +459,11 @@ export function buildContactNotificationEmail(params: {
 
           <div class="message-box">
             <div class="message-title">📝 Nội dung tin nhắn:</div>
-            <p class="message-text">${params.message}</p>
+            <p class="message-text">${safeMessage}</p>
           </div>
 
           <div class="action-container">
-            <a href="mailto:${params.email}?subject=Re: ${encodeURIComponent(subjectText)}" class="reply-button">
+            <a href="mailto:${safeEmail}?subject=Re: ${safeReplySubject}" class="reply-button">
               ✉️ Bấm để trả lời nhanh qua Email
             </a>
           </div>
@@ -412,7 +471,7 @@ export function buildContactNotificationEmail(params: {
 
         <div class="footer">
           <p style="margin: 0 0 4px 0;">Email này được gửi tự động từ hệ thống Website HSRM Resort.</p>
-          <p style="margin: 0;">Bạn có thể trả lời trực tiếp email này để gửi phản hồi tới hòm thư của khách hàng (${params.email}).</p>
+          <p style="margin: 0;">Bạn có thể trả lời trực tiếp email này để gửi phản hồi tới hòm thư của khách hàng (${safeEmail}).</p>
         </div>
       </div>
     </body>
@@ -429,6 +488,13 @@ export function buildContactAutoReplyEmail(params: {
   message: string;
 }): string {
   const subjectText = params.subject?.trim() || "Yêu cầu liên hệ trực tiếp";
+
+  // Escape all dynamic values before inserting into HTML
+  const safeName = escapeHtml(params.name);
+  const safeEmail = escapeHtml(params.email);
+  const safePhone = escapeHtml(params.phone?.trim() || "");
+  const safeSubject = escapeHtml(subjectText);
+  const safeMessage = escapeHtml(params.message);
 
   return `
     <!DOCTYPE html>
@@ -504,21 +570,25 @@ export function buildContactAutoReplyEmail(params: {
 
         <div class="content">
           <p style="font-size: 15px; margin: 0 0 16px;">
-            Kính chào Quý khách <span class="highlight">${params.name}</span>,
+            Kính chào Quý khách <span class="highlight">${safeName}</span>,
           </p>
           <p style="font-size: 14px; margin: 0 0 16px; color: #334155;">
-            Chúng tôi đã nhận được thông tin liên hệ của bạn liên quan đến: <strong>${subjectText}</strong>.
+            Chúng tôi đã nhận được thông tin liên hệ của bạn liên quan đến: <strong>${safeSubject}</strong>.
           </p>
-          
+
           <div class="message-box">
             <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">
               Nội dung bạn đã gửi:
             </p>
-            <p style="margin: 0; font-size: 14px; color: #1e293b; white-space: pre-wrap;">${params.message}</p>
+            <p style="margin: 0; font-size: 14px; color: #1e293b; white-space: pre-wrap;">${safeMessage}</p>
           </div>
 
           <p style="font-size: 14px; margin: 0 0 16px; color: #334155;">
-            Đội ngũ tư vấn và chăm sóc khách hàng của HSRM Resort sẽ xem xét và phản hồi tới bạn trong thời gian sớm nhất qua email <strong>${params.email}</strong>${params.phone ? ` hoặc số điện thoại <strong>${params.phone}</strong>` : ""}.
+            Đội ngũ tư vấn và chăm sóc khách hàng của HSRM Resort sẽ xem xét và phản hồi tới bạn trong thời gian sớm nhất qua email <strong>${safeEmail}</strong>${
+              params.phone
+                ? ` hoặc số điện thoại <strong>${safePhone}</strong>`
+                : ""
+            }.
           </p>
           <p style="font-size: 14px; margin: 0 0 20px; color: #334155;">
             Nếu bạn cần hỗ trợ khẩn cấp hoặc tư vấn đặt phòng ngay lập tức, xin vui lòng gọi đến số hotline: <a href="tel:0001234567890" style="color: #0284c7; font-weight: 700; text-decoration: none;">000-123-456-7890</a>.
