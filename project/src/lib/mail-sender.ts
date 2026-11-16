@@ -1,25 +1,46 @@
 import nodemailer from "nodemailer";
 
+// Escape dữ liệu động trước khi chèn vào HTML email
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (char) => {
+    const entities: Record<string, string> = {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    };
+
+    return entities[char];
+  });
+}
+
 // Retrieve SMTP credentials from environment variables
 const SMTP_HOST = process.env.SMTP_HOST || "smtp.gmail.com";
 const SMTP_PORT = Number(process.env.SMTP_PORT) || 587;
 const SMTP_USER = process.env.SMTP_USER || "";
 const SMTP_PASS = process.env.SMTP_PASS || "";
-const SMTP_FROM = process.env.SMTP_FROM || `"HSRM Resort Booking" <noreply@hotel.com>`;
+const SMTP_FROM =
+  process.env.SMTP_FROM || `"HSRM Resort Booking" <noreply@hotel.com>`;
 
 // Create transporter only if user & pass are provided
 const createTransporter = () => {
   if (!SMTP_USER || !SMTP_PASS) {
-    console.warn("WARNING: SMTP credentials (SMTP_USER/SMTP_PASS) are missing in environment variables. Mailer is disabled.");
+    console.warn(
+      "WARNING: SMTP credentials (SMTP_USER/SMTP_PASS) are missing in environment variables. Mailer is disabled.",
+    );
     return null;
   }
+
+  const cleanPass = SMTP_PASS.replace(/\s+/g, "");
+
   return nodemailer.createTransport({
     host: SMTP_HOST,
     port: SMTP_PORT,
-    secure: SMTP_PORT === 465, // true for 465, false for others
+    secure: SMTP_PORT === 465,
     auth: {
       user: SMTP_USER,
-      pass: SMTP_PASS,
+      pass: cleanPass,
     },
   });
 };
@@ -28,13 +49,22 @@ export interface SendMailParams {
   to: string;
   subject: string;
   html: string;
+  replyTo?: string;
 }
 
 /** Sends an email using SMTP transport */
-export async function sendEmail({ to, subject, html }: SendMailParams): Promise<boolean> {
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  replyTo,
+}: SendMailParams): Promise<boolean> {
   const transporter = createTransporter();
+
   if (!transporter) {
-    console.warn("Skipping sending email because mail transporter is not configured.");
+    console.warn(
+      "Skipping sending email because mail transporter is not configured.",
+    );
     return false;
   }
 
@@ -44,8 +74,13 @@ export async function sendEmail({ to, subject, html }: SendMailParams): Promise<
       to,
       subject,
       html,
+      replyTo: replyTo || undefined,
     });
-    console.log(`Email sent successfully to ${to}. Message ID: ${info.messageId}`);
+
+    console.log(
+      `Email sent successfully to ${to}. Message ID: ${info.messageId}`,
+    );
+
     return true;
   } catch (error) {
     console.error(`Failed to send email to ${to}:`, error);
@@ -57,6 +92,11 @@ export async function sendEmail({ to, subject, html }: SendMailParams): Promise<
 export function formatVietnameseDate(dateStr: string): string {
   try {
     const date = new Date(dateStr);
+
+    if (Number.isNaN(date.getTime())) {
+      return dateStr;
+    }
+
     return date.toLocaleDateString("vi-VN", {
       timeZone: "Asia/Ho_Chi_Minh",
       weekday: "long",
@@ -64,7 +104,7 @@ export function formatVietnameseDate(dateStr: string): string {
       month: "long",
       day: "numeric",
     });
-  } catch (e) {
+  } catch {
     return dateStr;
   }
 }
@@ -78,6 +118,12 @@ export function buildExperienceEmailTemplate(params: {
 }): string {
   const formattedCheckIn = formatVietnameseDate(params.checkInDate);
   const formattedCheckOut = formatVietnameseDate(params.checkOutDate);
+
+  // Escape all dynamic values before inserting into HTML
+  const safeCustomerName = escapeHtml(params.customerName);
+  const safeExperienceTitle = escapeHtml(params.experienceTitle);
+  const safeCheckIn = escapeHtml(formattedCheckIn);
+  const safeCheckOut = escapeHtml(formattedCheckOut);
 
   return `
     <!DOCTYPE html>
@@ -159,8 +205,8 @@ export function buildExperienceEmailTemplate(params: {
           <h1>Xác Nhận Đăng Ký Trải Nghiệm</h1>
         </div>
         <div class="content">
-          <p>Kính chào Quý khách <span class="highlight">${params.customerName}</span>,</p>
-          <p>Cảm ơn Quý khách đã đặt dịch vụ trải nghiệm <span class="highlight">${params.experienceTitle}</span> tại hệ thống Resort của chúng tôi.</p>
+          <p>Kính chào Quý khách <span class="highlight">${safeCustomerName}</span>,</p>
+          <p>Cảm ơn Quý khách đã đặt dịch vụ trải nghiệm <span class="highlight">${safeExperienceTitle}</span> tại hệ thống Resort của chúng tôi.</p>
           <p>Chúng tôi xin gửi đến Quý khách thông tin lịch trình và thời gian chi tiết của dịch vụ như sau:</p>
 
           <table class="schedule-table">
@@ -175,22 +221,22 @@ export function buildExperienceEmailTemplate(params: {
               <tr>
                 <td style="font-weight: 600;">🏨 Check-in Khách sạn</td>
                 <td><strong>14:00</strong></td>
-                <td>Ngày nhận phòng: ${formattedCheckIn}</td>
+                <td>Ngày nhận phòng: ${safeCheckIn}</td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">🚌 Khởi hành Tour</td>
                 <td><strong>07:30</strong></td>
-                <td>Ngày tham gia: ${formattedCheckIn} (Xe đón tại sảnh Resort)</td>
+                <td>Ngày tham gia: ${safeCheckIn} (Xe đón tại sảnh Resort)</td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">🎯 Tham gia Hoạt động</td>
                 <td><strong>08:30 - 11:30</strong></td>
-                <td>Hoạt động trải nghiệm: ${params.experienceTitle}</td>
+                <td>Hoạt động trải nghiệm: ${safeExperienceTitle}</td>
               </tr>
               <tr>
                 <td style="font-weight: 600;">🔑 Check-out Khách sạn</td>
                 <td><strong>12:00</strong></td>
-                <td>Ngày trả phòng: ${formattedCheckOut}</td>
+                <td>Ngày trả phòng: ${safeCheckOut}</td>
               </tr>
             </tbody>
           </table>
@@ -203,6 +249,359 @@ export function buildExperienceEmailTemplate(params: {
         </div>
         <div class="footer">
           <p>Email này được gửi tự động từ hệ thống quản lý HSRM. Vui lòng không trả lời trực tiếp email này.</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/** Builds an HTML email for admin when a customer submits the contact form */
+export function buildContactNotificationEmail(params: {
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+}): string {
+  const currentTime = new Date().toLocaleString("vi-VN", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  });
+
+  const subjectText =
+    params.subject?.trim() || "Yêu cầu liên hệ trực tiếp từ website";
+  const phoneText = params.phone?.trim() || "Chưa cung cấp";
+
+  // Escape all dynamic values before inserting into HTML
+  const safeName = escapeHtml(params.name);
+  const safeEmail = escapeHtml(params.email);
+  const safePhone = escapeHtml(params.phone?.trim() || "");
+  const safeSubject = escapeHtml(subjectText);
+  const safeMessage = escapeHtml(params.message);
+  const safePhoneText = escapeHtml(phoneText);
+
+  // Encode the subject for the mailto URL, then escape it for HTML
+  const safeReplySubject = escapeHtml(encodeURIComponent(subjectText));
+
+  return `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Tin nhắn liên hệ mới từ khách hàng</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1e293b;
+          background-color: #f1f5f9;
+          margin: 0;
+          padding: 20px 10px;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          border: 1px solid #e2e8f0;
+        }
+        .header {
+          background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%);
+          color: #ffffff;
+          padding: 28px 24px;
+          text-align: center;
+        }
+        .header h1 {
+          margin: 0 0 6px 0;
+          font-size: 22px;
+          font-weight: 700;
+          letter-spacing: 0.3px;
+        }
+        .header p {
+          margin: 0;
+          font-size: 13px;
+          color: #e0f2fe;
+          opacity: 0.95;
+        }
+        .badge {
+          display: inline-block;
+          background-color: rgba(255, 255, 255, 0.2);
+          padding: 4px 12px;
+          border-radius: 20px;
+          font-size: 12px;
+          font-weight: 600;
+          margin-top: 10px;
+        }
+        .content {
+          padding: 28px 24px;
+        }
+        .info-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-bottom: 24px;
+        }
+        .info-table td {
+          padding: 10px 12px;
+          border-bottom: 1px solid #f1f5f9;
+          font-size: 14px;
+        }
+        .info-label {
+          color: #64748b;
+          font-weight: 600;
+          width: 130px;
+          background-color: #f8fafc;
+        }
+        .info-value {
+          color: #0f172a;
+          font-weight: 500;
+        }
+        .message-box {
+          background-color: #f8fafc;
+          border-left: 4px solid #0284c7;
+          border-radius: 0 8px 8px 0;
+          padding: 16px 20px;
+          margin: 20px 0;
+        }
+        .message-title {
+          font-size: 13px;
+          font-weight: 700;
+          color: #475569;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+          margin-bottom: 8px;
+        }
+        .message-text {
+          font-size: 15px;
+          color: #1e293b;
+          line-height: 1.7;
+          white-space: pre-wrap;
+          margin: 0;
+        }
+        .action-container {
+          text-align: center;
+          margin: 30px 0 10px 0;
+        }
+        .reply-button {
+          display: inline-block;
+          background-color: #0284c7;
+          color: #ffffff !important;
+          text-decoration: none;
+          padding: 12px 28px;
+          font-size: 14px;
+          font-weight: 600;
+          border-radius: 8px;
+          box-shadow: 0 2px 6px rgba(2, 132, 199, 0.3);
+        }
+        .footer {
+          background-color: #f8fafc;
+          padding: 20px 24px;
+          text-align: center;
+          font-size: 12px;
+          color: #94a3b8;
+          border-top: 1px solid #e2e8f0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>HSRM Resort</h1>
+          <p>Hệ thống tiếp nhận thông tin liên hệ trực tiếp từ website</p>
+          <span class="badge">🔔 Tin nhắn mới</span>
+        </div>
+
+        <div class="content">
+          <p style="margin: 0 0 16px; font-size: 15px; color: #334155;">
+            Quản trị viên thân mến, bạn vừa nhận được một lời nhắn liên hệ mới từ khách hàng với thông tin chi tiết như sau:
+          </p>
+
+          <table class="info-table">
+            <tr>
+              <td class="info-label">👤 Họ và tên:</td>
+              <td class="info-value"><strong>${safeName}</strong></td>
+            </tr>
+            <tr>
+              <td class="info-label">✉️ Email khách:</td>
+              <td class="info-value">
+                <a href="mailto:${safeEmail}" style="color: #0284c7; text-decoration: none; font-weight: 600;">
+                  ${safeEmail}
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td class="info-label">📞 Số điện thoại:</td>
+              <td class="info-value">
+                ${
+                  params.phone
+                    ? `<a href="tel:${safePhone}" style="color: #0284c7; text-decoration: none; font-weight: 600;">${safePhone}</a>`
+                    : safePhoneText
+                }
+              </td>
+            </tr>
+            <tr>
+              <td class="info-label">📌 Chủ đề:</td>
+              <td class="info-value">${safeSubject}</td>
+            </tr>
+            <tr>
+              <td class="info-label">⏰ Thời gian gửi:</td>
+              <td class="info-value">${currentTime} (Giờ Việt Nam)</td>
+            </tr>
+          </table>
+
+          <div class="message-box">
+            <div class="message-title">📝 Nội dung tin nhắn:</div>
+            <p class="message-text">${safeMessage}</p>
+          </div>
+
+          <div class="action-container">
+            <a href="mailto:${safeEmail}?subject=Re: ${safeReplySubject}" class="reply-button">
+              ✉️ Bấm để trả lời nhanh qua Email
+            </a>
+          </div>
+        </div>
+
+        <div class="footer">
+          <p style="margin: 0 0 4px 0;">Email này được gửi tự động từ hệ thống Website HSRM Resort.</p>
+          <p style="margin: 0;">Bạn có thể trả lời trực tiếp email này để gửi phản hồi tới hòm thư của khách hàng (${safeEmail}).</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+}
+
+/** Builds an HTML confirmation email for the customer */
+export function buildContactAutoReplyEmail(params: {
+  name: string;
+  email: string;
+  phone?: string;
+  subject?: string;
+  message: string;
+}): string {
+  const subjectText = params.subject?.trim() || "Yêu cầu liên hệ trực tiếp";
+
+  // Escape all dynamic values before inserting into HTML
+  const safeName = escapeHtml(params.name);
+  const safeEmail = escapeHtml(params.email);
+  const safePhone = escapeHtml(params.phone?.trim() || "");
+  const safeSubject = escapeHtml(subjectText);
+  const safeMessage = escapeHtml(params.message);
+
+  return `
+    <!DOCTYPE html>
+    <html lang="vi">
+    <head>
+      <meta charset="UTF-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>HSRM Resort - Đã nhận thông tin liên hệ của bạn</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Arial, sans-serif;
+          line-height: 1.6;
+          color: #1e293b;
+          background-color: #f1f5f9;
+          margin: 0;
+          padding: 20px 10px;
+        }
+        .container {
+          max-width: 600px;
+          margin: 0 auto;
+          background: #ffffff;
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+          border: 1px solid #e2e8f0;
+        }
+        .header {
+          background: linear-gradient(135deg, #1e3a8a 0%, #0284c7 100%);
+          color: #ffffff;
+          padding: 28px 24px;
+          text-align: center;
+        }
+        .header h1 {
+          margin: 0 0 6px 0;
+          font-size: 24px;
+          font-weight: 700;
+        }
+        .header p {
+          margin: 0;
+          font-size: 13px;
+          color: #e0f2fe;
+        }
+        .content {
+          padding: 28px 24px;
+        }
+        .highlight {
+          color: #0284c7;
+          font-weight: 600;
+        }
+        .message-box {
+          background-color: #f8fafc;
+          border-left: 4px solid #0284c7;
+          border-radius: 0 8px 8px 0;
+          padding: 16px 20px;
+          margin: 18px 0;
+        }
+        .footer {
+          background-color: #f8fafc;
+          padding: 20px 24px;
+          text-align: center;
+          font-size: 12px;
+          color: #94a3b8;
+          border-top: 1px solid #e2e8f0;
+        }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>HSRM Resort</h1>
+          <p>Cảm ơn bạn đã liên hệ với chúng tôi</p>
+        </div>
+
+        <div class="content">
+          <p style="font-size: 15px; margin: 0 0 16px;">
+            Kính chào Quý khách <span class="highlight">${safeName}</span>,
+          </p>
+          <p style="font-size: 14px; margin: 0 0 16px; color: #334155;">
+            Chúng tôi đã nhận được thông tin liên hệ của bạn liên quan đến: <strong>${safeSubject}</strong>.
+          </p>
+
+          <div class="message-box">
+            <p style="margin: 0 0 6px 0; font-size: 12px; font-weight: 700; color: #64748b; text-transform: uppercase;">
+              Nội dung bạn đã gửi:
+            </p>
+            <p style="margin: 0; font-size: 14px; color: #1e293b; white-space: pre-wrap;">${safeMessage}</p>
+          </div>
+
+          <p style="font-size: 14px; margin: 0 0 16px; color: #334155;">
+            Đội ngũ tư vấn và chăm sóc khách hàng của HSRM Resort sẽ xem xét và phản hồi tới bạn trong thời gian sớm nhất qua email <strong>${safeEmail}</strong>${
+              params.phone
+                ? ` hoặc số điện thoại <strong>${safePhone}</strong>`
+                : ""
+            }.
+          </p>
+          <p style="font-size: 14px; margin: 0 0 20px; color: #334155;">
+            Nếu bạn cần hỗ trợ khẩn cấp hoặc tư vấn đặt phòng ngay lập tức, xin vui lòng gọi đến số hotline: <a href="tel:0001234567890" style="color: #0284c7; font-weight: 700; text-decoration: none;">000-123-456-7890</a>.
+          </p>
+          <p style="margin: 20px 0 0; font-size: 14px;">
+            Trân trọng cảm ơn,<br>
+            <strong style="color: #1e3a8a;">Đội ngũ HSRM Resort</strong>
+          </p>
+        </div>
+
+        <div class="footer">
+          <p style="margin: 0 0 4px 0;">&copy; 2026 HSRM Resort. All rights reserved.</p>
+          <p style="margin: 0;">Email này được gửi tự động để xác nhận đã tiếp nhận thông tin của bạn.</p>
         </div>
       </div>
     </body>
