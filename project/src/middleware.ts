@@ -19,6 +19,7 @@ const publicPaths = [
   "/api/auth/session",
   "/api/rooms",
   "/api/services",
+  "/api/contact",
 ];
 
 // Paths that match multi-listing templates (we treat these as public)
